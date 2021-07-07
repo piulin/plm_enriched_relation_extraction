@@ -17,7 +17,6 @@ from datasets.dataset import dataset
 import json
 from os.path import join
 from datasets.tacred.sample import sample
-from tokenizer import tokenizer
 from tokenizer import mapper
 
 
@@ -25,10 +24,12 @@ class tacred(dataset):
 
     def __init__( self,
                   path_to_json,
+                  tokzer,
                   device):
         """
         Loads a dataset into memory
         :param path_to_json: path to the TACRED folder
+        :param tokzer: tokenizer
         :param device: torch device where the computation will take place
         """
 
@@ -41,7 +42,7 @@ class tacred(dataset):
         # Each one of the instances of the dataset and its corresponding relation ID
         self.samples, self.y = self.build_samples_from_json(self.path_to_json)
 
-
+        self.tokzer = tokzer
 
 
     @staticmethod
@@ -127,7 +128,7 @@ class tacred(dataset):
         tokens = [ sample_id_tuple[0].data_dic['token'] for sample_id_tuple in data ]
 
         # retrieve tokens IDs and send them to the `device`
-        X = tokenizer.get_token_ids(tokens).to(self.device)
+        X = self.tokzer.get_token_ids(tokens).to(self.device)
 
         # put targets into tensors and send them to the `device`
         y = torch.tensor( [ sample_id_tuple[1] for sample_id_tuple in data ] ).to(self.device)

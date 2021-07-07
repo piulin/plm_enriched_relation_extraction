@@ -29,16 +29,20 @@ class re(object):
     def __init__(self,
                  number_of_relations,
                  device,
+                 plm_model_path,
                  args):
         """
         Initializes the network
         :param number_of_relations: Number of different relations in the labels
         :param device: device where the computation will take place
+        :param plm_model_path: path to the pretrained language model
         :param args: command-line arguments
         """
 
         # Instantiate the network and send it to the `device`
-        self.eat = enriched_attention_plm.enriched_attention_transformers(number_of_relations).to(device)
+        self.eat = enriched_attention_plm\
+            .enriched_attention_transformers(number_of_relations, plm_model_path)\
+            .to(device)
 
         self.device = device
 

@@ -22,7 +22,7 @@ class seq_id(object):
         """
         Sets up the dictionaries and indexes required
         :param idx: starting index
-        :param lock_available: adds an unknow entry '<UNKNOWN>' entry associated with index `idx`.
+        :param lock_available: adds an unknown entry '<UNKNOWN>' entry associated with index `idx`.
         """
 
         # Sets up dictionaries.

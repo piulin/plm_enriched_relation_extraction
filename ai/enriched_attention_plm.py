@@ -27,17 +27,19 @@ class enriched_attention_transformers(nn.Module):
 
 
     def __init__(self,
-                 number_of_relations):
+                 number_of_relations,
+                 plm_model_path='roberta-base'):
         """
         Sets up the network's plm and layers
         :param number_of_relations: Number of different relations in the labels
+        :param plm_model_path: path to the pretrained language model
         """
 
         # Set up the nn module
         super(enriched_attention_transformers, self).__init__()
 
         # Load the pretrained language model
-        self.plm = RobertaModel.from_pretrained('roberta-base')
+        self.plm = RobertaModel.from_pretrained(plm_model_path)
 
         self.config = self.plm.config
 

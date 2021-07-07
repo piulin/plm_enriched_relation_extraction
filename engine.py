@@ -20,6 +20,7 @@ Engine module: it is responsible of the main logic of the program.
 from datasets.tacred.tacred import tacred
 from ai.re import re
 from utils import utils
+from tokenizer import tokenizer
 
 def run(args):
     """
@@ -32,6 +33,9 @@ def run(args):
     # Retrieves the device that will perform the training/classification (either CPU or GPU)
     device = utils.get_device(args['cuda_device'])
 
+    # Initialize a tokenizer and ID mapper (for converting tokens to IDs in the datasets)
+    tokzer = tokenizer.tokenizer( args['plm_path'] )
+
     # Train dataset
     train = None
 
@@ -42,12 +46,13 @@ def run(args):
         train_json_path, _, _ = tacred.build_file_paths(args['tacred'])
 
         # load the train split
-        train = tacred ( train_json_path, device )
+        train = tacred ( train_json_path, tokzer , device )
 
 
     # Initializes the neural network
     model = re ( train.get_number_of_relations(),
                  device,
+                 args['plm_path'],
                  args )
 
     # Train
