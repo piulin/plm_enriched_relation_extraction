@@ -19,6 +19,7 @@ Argparse class: Defines and manages the command-line argument syntax and values.
 
 import argparse
 from argparse import RawTextHelpFormatter
+from datetime import datetime
 
 class parser(object):
 
@@ -42,8 +43,16 @@ class parser(object):
         self.parser.add_argument('--cuda-device','-c', metavar='gpu_id', type=int, default=0,
                                  help='Selects the cuda device. If -1, then CPU is selected.')
 
-        self.parser.add_argument('--experiment-label','-el', metavar='EXECUTION_LABEL', type=str, help='Name an execution', default='Enriched attention PLM')
+        self.parser.add_argument('--experiment-label','-el', metavar='EXECUTION_LABEL', type=str, help='Name the execution',
+                                 default='Enriched attention PLM')
+
+        self.parser.add_argument('--run-label','-rl', metavar='RUN_LABEL', type=str, help='Name the run',
+                                 default=datetime.today().strftime('%Y-%m-%d'))
+
         self.parser.add_argument('--plm-path','-pp', type=str, help='Path to the pretained langauge model for RoBERTa', default='roberta-base')
+
+        self.parser.add_argument('--fig-folder','-ff', type=str, help='Path to the folder where figures will be saved', default='figures/')
+
 
 
     def parse_args(self):

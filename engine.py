@@ -22,6 +22,7 @@ from ai.re import re
 from utils import utils
 from tokenizer import tokenizer
 
+
 def run(args):
     """
     This is where the program starts after command-line argument parsing.
@@ -33,26 +34,37 @@ def run(args):
     # Retrieves the device that will perform the training/classification (either CPU or GPU)
     device = utils.get_device(args['cuda_device'])
 
+    # Create output folders if they do not exist
+    utils.create_folder(args['fig_folder'])
+
     # Initialize a tokenizer and ID mapper (for converting tokens to IDs in the datasets)
     tokzer = tokenizer.tokenizer( args['plm_path'] )
 
-    # Train dataset
+    # Datasets
     train = None
+    dev = None
+    test = None
 
     # If tacred option is provided, load it
     if args['tacred']:
 
         # retrieve the paths to the train, test, and development json
-        train_json_path, _, _ = tacred.build_file_paths(args['tacred'])
+        train_json_path, dev_json_path , test_json_path = tacred.build_file_paths(args['tacred'])
 
-        # load the train split
+        # load data splits
         train = tacred ( train_json_path, tokzer , device )
+
+        # for dev a test dataset, we also pass the relation mapper so relations classes share the same IDs.
+        dev = tacred ( dev_json_path, tokzer, device, train.relation_mapper )
+        test = tacred ( test_json_path, tokzer, device, train.relation_mapper )
+
 
 
     # Initializes the neural network
     model = re ( train.get_number_of_relations(),
                  device,
                  args['plm_path'],
+                 args['fig_folder'],
                  args )
 
     # Train
@@ -60,7 +72,15 @@ def run(args):
               args['batch_size'],
               args['learning_rate'],
               args['print_every'],
-              args['epochs']
+              args['epochs'],
+              dev_dataset=dev
               )
+
+    # Evaluate on test
+    model.evaluate(test,
+                   args['batch_size'],
+                   'Test'
+                   )
+
 
 

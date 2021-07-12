@@ -21,6 +21,8 @@ utils module: it gathers a bunch of utilities that provide side functionality.
 import time
 import math
 import torch
+from datetime import datetime
+import os
 
 def as_minutes(s):
     """
@@ -56,3 +58,23 @@ def get_device(cuda_device):
     return torch.device("cuda:" + str(cuda_device)
                           if torch.cuda.is_available() and cuda_device != -1
                           else "cpu")
+
+def timestamp():
+    """
+    Retrieves a string corresponding to the current timestamp
+    :return:
+    """
+
+    now = datetime.now()
+    return now.strftime("%Y%m%d%H%M%S")
+
+def create_folder(path):
+    """
+    Creates a folder given a `path` if there is no directory of the same name
+    :param path:
+    :return:
+    """
+    try:
+        os.makedirs(path)
+    except FileExistsError:
+        pass

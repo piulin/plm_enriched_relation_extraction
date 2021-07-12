@@ -11,6 +11,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
     and Dr. Heike Adel-Vu  (BCAI).
 -------------------------------------------------------------------------------------
 """
+import random
 
 import torch
 from datasets.dataset import dataset
@@ -25,16 +26,18 @@ class tacred(dataset):
     def __init__( self,
                   path_to_json,
                   tokzer,
-                  device):
+                  device,
+                  relation_mapper=None):
         """
         Loads a dataset into memory
         :param path_to_json: path to the TACRED folder
         :param tokzer: tokenizer
         :param device: torch device where the computation will take place
+        :param relation_mapper: a mapper than translater relations to IDs and vice versa
         """
 
         # Get a mapper of relations to IDs.
-        self.relation_mapper = mapper.seq_id()
+        self.relation_mapper = mapper.seq_id() if relation_mapper is None else relation_mapper
 
         self.path_to_json = path_to_json
         self.device = device
@@ -57,7 +60,7 @@ class tacred(dataset):
         test_file = join( dataset_folder, 'test.json' )
         dev_file = join( dataset_folder, 'dev.json' )
 
-        return train_file, test_file, dev_file
+        return train_file, dev_file, test_file
 
 
     def build_samples_from_json(self, file):
@@ -141,6 +144,32 @@ class tacred(dataset):
         :return:
         """
         return self.relation_mapper.no_entries()
+
+
+    def get_relation_label_of_id(self, id):
+        """
+        Retrieves the label of relation with ID `id`
+        :param id: relation ID
+        :return: relation label
+        """
+        return self.relation_mapper.id2T(id)
+
+    def save_subset(self,
+                    path,
+                    no_samples):
+        """
+        Saves a random subset of the dataset with `no_samples` samples to disk.
+        :param path: save path
+        :param no_samples: number of samples
+        :return:
+        """
+        with open(path, 'w') as f:
+
+            # selects random samples and puts the dictionaries into a nice array
+            json_subset = [ s.data_dic for s in random.sample( self.samples, no_samples ) ]
+
+            # save it into disk
+            json.dump(json_subset, f)
 
 
 

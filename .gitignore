@@ -2,3 +2,4 @@
 mlruns/*
 __pychache__/*
 */__pycache__/*
+figures/*

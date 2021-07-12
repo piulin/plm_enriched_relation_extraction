@@ -17,7 +17,6 @@ log class: it is responsible of keeping track of the training hyperparameters, a
 """
 
 import mlflow
-from datetime import datetime
 
 class log (object) :
 
@@ -31,7 +30,7 @@ class log (object) :
         mlflow.set_experiment( args['experiment_label'] )
 
         # Label the current time
-        mlflow.start_run(run_name=datetime.today().strftime('%Y-%m-%d'))
+        mlflow.start_run(run_name=args['run_label'])
 
         # Log command-line arguments
         for k, v in args.items():
@@ -47,14 +46,23 @@ class log (object) :
         """
         mlflow.log_param(k,v)
 
-    def log_metrics(self, dictionary, step):
+    def log_metrics(self, args):
         """
         Logs a metric
         :param step: identifier
         :param dictionary: containing pairs key value
         :return:
         """
-        mlflow.log_metrics(metrics=dictionary, step=step)
+        mlflow.log_metrics( ** args )
+
+    def log_artifact(self,
+                     path_to_artifact):
+        """
+        Logs files into mlflow
+        :param path_to_artifact: path to the file to be log
+        :return:
+        """
+        mlflow.log_artifact(path_to_artifact)
 
 
 

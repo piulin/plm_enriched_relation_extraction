@@ -41,9 +41,24 @@ class dataset(object):
         """
         pass
 
+    def collate(self, data):
+        """
+        Provides batch tuple in the form (X,y)
+        :param data:  list of tuples (samples, y)
+        :return:  X and y data in tensors
+        """
+
     def get_number_of_relations(self):
         """
         Retrieves the number of different relations in the dataset.
         :return:
+        """
+        pass
+
+    def get_relation_label_of_id(self, id):
+        """
+        Retrieves the label of relation with ID `id`
+        :param id: relation ID
+        :return: relation label
         """
         pass
