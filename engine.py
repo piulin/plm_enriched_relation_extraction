@@ -65,6 +65,7 @@ def run(args):
                  device,
                  args['plm_path'],
                  args['fig_folder'],
+                 len(tokzer),
                  args )
 
     # Train
@@ -79,7 +80,8 @@ def run(args):
     # Evaluate on test
     model.evaluate(test,
                    args['batch_size'],
-                   'Test'
+                   'Test',
+                   no_batches=None
                    )
 
 

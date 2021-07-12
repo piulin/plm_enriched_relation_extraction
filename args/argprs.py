@@ -18,7 +18,7 @@ Argparse class: Defines and manages the command-line argument syntax and values.
 """
 
 import argparse
-from argparse import RawTextHelpFormatter
+from argparse import ArgumentDefaultsHelpFormatter
 from datetime import datetime
 
 class parser(object):
@@ -28,11 +28,13 @@ class parser(object):
         Initializes the command-line argument parser.
         """
 
-        self.parser = argparse.ArgumentParser(description='Enriched Attention on PTL for Relation Extraction.', formatter_class=RawTextHelpFormatter)
+        self.parser = argparse.ArgumentParser(description='Enriched Attention on PTL for Relation Extraction.',
+                                              formatter_class=ArgumentDefaultsHelpFormatter)
 
         self.parser.add_argument('--tacred','-t', type=str, help='TACRED dataset.')
         self.parser.add_argument('--batch-size','-b', type=int, help='Sets the batch size for mini-batching training.', default=16)
-        self.parser.add_argument('--learning-rate','-l', type=float, help='Sets the learning rate.', default=0.0001)
+        self.parser.add_argument('--learning-rate','-l', type=float, help='Sets the learning rate.', default=5e-5)
+
         self.parser.add_argument('--epochs','-e', metavar='NO_EPHOCS', type=int, help='Sets the number of epochs for '
                                                                                       'mini-batch training.',
                                                                                         default=4)
