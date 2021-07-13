@@ -68,6 +68,7 @@ def run(args):
                  len(tokzer),
                  args )
 
+
     # Train
     model.fit(train,
               args['batch_size'],
@@ -77,11 +78,14 @@ def run(args):
               dev_dataset=dev
               )
 
+
+
     # Evaluate on test
     model.evaluate(test,
                    args['batch_size'],
                    'Test',
-                   no_batches=None
+                   no_batches=None,
+                   plot=True
                    )
 
 

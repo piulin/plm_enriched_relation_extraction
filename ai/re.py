@@ -78,6 +78,7 @@ class re(object):
         :return:
         """
 
+
         # define loss function. TODO: consider weights for unbalanced data.
         loss_criterion = nn.NLLLoss()
 
@@ -107,18 +108,37 @@ class re(object):
         # Iterate epochs
         for i in range(epochs):
 
-            print(f'#####! EPOCH {i + 1} !#####')
+            # Ctrl-C (SIGINT) signals: stop the training process and proceed with testing
+            try:
 
-            # Train one epoch
-            self.train_epoch(train_iterator,
-                             optimizer,
-                             lr_scheduler,
-                             loss_criterion,
-                             print_every,
-                             dev_dataset,
-                             dataset,
-                             batch_size)
+                print('')
+                print(f'#####! EPOCH {i + 1} !#####')
+                print('')
 
+                # Train one epoch
+                self.train_epoch(train_iterator,
+                                 optimizer,
+                                 lr_scheduler,
+                                 loss_criterion,
+                                 print_every,
+                                 dev_dataset,
+                                 dataset,
+                                 batch_size)
+
+                # At the end of one epoch, evaluate on the whole dev dataset
+                if dev_dataset:
+
+                    print('')
+                    print('####! EVAL ON DEV DATASET !####')
+                    print('')
+                    self.evaluate(dev_dataset, batch_size, f'Dev Epoch', no_batches=None, plot=True, step=i+1)
+
+            # if Ctrl-C, stop the training process
+            except KeyboardInterrupt:
+
+                # Log the early stop
+                self.glog.log_param('Early stop at epoch',i+1)
+                print('TRAINING STOPPED.')
 
 
     def train_epoch(self,
@@ -180,11 +200,11 @@ class re(object):
                 print('')
 
                 # Evaluate and on train dataset
-                self.evaluate(train_dataset, batch_size, 'Train', no_batches=10, plot=False)
+                self.evaluate(train_dataset, batch_size, 'Train', no_batches=10, plot=False, step=iter)
 
                 # Evaluate on test dataset if provided
                 if dev_dataset:
-                    self.evaluate(dev_dataset, batch_size, 'Dev', no_batches=10, plot=False)
+                    self.evaluate(dev_dataset, batch_size, 'Dev', no_batches=10, plot=False, step=iter)
 
                 loss_avg = print_loss / print_every
                 print('%s (%d %d%%) loss: %.4f' % (utils.time_since(start, iter / no_iterations),
@@ -249,7 +269,8 @@ class re(object):
                 batch_size,
                 evaluate_label = 'default',
                 no_batches=10,
-                plot = True
+                plot = True,
+                step = None
                 ):
         """
         Retrieve the gold and predicted labels of a dataset.
@@ -259,6 +280,7 @@ class re(object):
         :param no_batches: number of random batches to be evaluated. If `no_batches` is None, then the evaluation is
                 performed on the entire dataset.
         :param plot: decides whether to save the confusion matrix as a heat map
+        :param step: x axis value for logs
         :return: gold and predcited labels (as lists)
         """
 
@@ -299,7 +321,7 @@ class re(object):
 
 
         # Assess
-        assessment.assess(dataset, ys_gt, ys_hat, self.glog, self.figure_folder, evaluate_label, plot=plot)
+        assessment.assess(dataset, ys_gt, ys_hat, self.glog, self.figure_folder, evaluate_label, plot=plot, step=step)
 
         return ys_gt, ys_hat
 

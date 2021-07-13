@@ -30,7 +30,7 @@ def plot_confusion_matrix(cm,
                           classes,
                           savefolder,
                           filename = utils.timestamp() + '.png',
-                          figsize = (10,7)):
+                          figsize = (30,20)):
     """
     Creates an image of a confusion matrix.
     :param cm: confusion matrix
@@ -64,7 +64,8 @@ def assess(dataset,
            log,
            figure_folder,
            label='default',
-           plot=True):
+           plot=True,
+           step=None):
 
     """
     Asses the performance of the model given gold and predicted labels
@@ -75,6 +76,7 @@ def assess(dataset,
     :param figure_folder: path to the folder containing figures
     :param label: it is used to name the assessment (e.g. dev or test) in the logs
     :param plot: creates and logs a plot of the confusion matrix
+    :param step: x axis value for logs
     :return:
     """
 
@@ -91,7 +93,10 @@ def assess(dataset,
 
     # create a plot of the confusion matrix
     if plot:
-        savepath = plot_confusion_matrix(cm, labels, figure_folder)
+        savepath = plot_confusion_matrix(cm,
+                                         labels,
+                                         figure_folder,
+                                         label + '-step-' + str(0 if step is None else step) + '-' + utils.timestamp() + '.png')
         log.log_artifact(savepath)
 
     # Retrieve performance metrics
@@ -129,7 +134,8 @@ def assess(dataset,
                 f' {label} P -macro': ma_precision,
                 f' {label} R -macro': ma_recall,
                 f' {label} F1 -macro': ma_fscore
-            }
+            },
+            'step': 0 if step is None else step
         }
     )
 
