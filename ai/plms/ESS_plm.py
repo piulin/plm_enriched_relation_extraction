@@ -48,6 +48,7 @@ class ess_plm(nn.Module):
 
         self.config = self.plm.config
 
+
         # Linear layer on top of the plm (input size: concatenation of h_i and h_{j+2}, i.e. two hidden states)
         self.out = nn.Linear(self.config.hidden_size * 2, number_of_relations )
 

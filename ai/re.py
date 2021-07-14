@@ -322,6 +322,7 @@ class re(object):
 
         # Assess
         assessment.assess(dataset, ys_gt, ys_hat, self.glog, self.figure_folder, evaluate_label, plot=plot, step=step)
+        assessment.score(ys_gt, ys_hat, dataset.no_relation_label(), self.glog, evaluate_label, step=step)
 
         return ys_gt, ys_hat
 

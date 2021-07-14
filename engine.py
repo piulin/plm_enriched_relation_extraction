@@ -11,6 +11,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
     and Dr. Heike Adel-Vu  (BCAI).
 -------------------------------------------------------------------------------------
 """
+import numpy.random
 
 """
 Engine module: it is responsible of the main logic of the program.
@@ -21,6 +22,9 @@ from datasets.tacred.tacred import tacred
 from ai.re import re
 from utils import utils
 from tokenizer import tokenizer
+import torch
+import random
+import numpy as np
 
 
 def run(args):
@@ -30,6 +34,9 @@ def run(args):
     :param args: command-line arguments
     :return:
     """
+
+    # Config seeds
+    setup_seeds(args['seed'])
 
     # Retrieves the device that will perform the training/classification (either CPU or GPU)
     device = utils.get_device(args['cuda_device'])
@@ -90,3 +97,16 @@ def run(args):
 
 
 
+
+
+def setup_seeds(seed):
+    """
+    Sets sees for deterministic operation
+    :param seed:
+    :return:
+    """
+    if seed is not None:
+        torch.manual_seed(seed)
+        random.seed(seed)
+        numpy.random.seed(seed)
+        torch.use_deterministic_algorithms(True)

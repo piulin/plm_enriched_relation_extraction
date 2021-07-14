@@ -62,3 +62,10 @@ class dataset(object):
         :return: relation label
         """
         pass
+
+    def no_relation_label(self):
+        """
+        Returns the ID of the no relation type.
+        :return:
+        """
+        pass

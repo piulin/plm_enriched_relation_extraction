@@ -55,6 +55,12 @@ class parser(object):
 
         self.parser.add_argument('--fig-folder','-ff', type=str, help='Path to the folder where figures will be saved', default='figures/')
 
+        self.parser.add_argument('--seed','-s', type=int, help='Set a seed for pytorch', default=None)
+
+        self.parser.add_argument('--disable-mlflow','-dm',
+                                 action='store_true',
+                                 help='If used, the program will not log performance metrics into mlflow', default=False)
+
 
 
     def parse_args(self):

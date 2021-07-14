@@ -201,6 +201,12 @@ class tacred(dataset):
 
 
 
+    def no_relation_label(self):
+        """
+        Returns the ID of the no relation type.
+        :return:
+        """
+        return self.relation_mapper.T2id('no_relation')
 
 
 
