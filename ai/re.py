@@ -20,6 +20,7 @@ class re: it is responsible of performing training and test on a given dataset.
 import torch.nn as nn
 from torch import optim
 from ai.plms import ESS_plm
+from ai.plms.cls_plm import cls_plm
 from torch.utils.data import DataLoader
 import time
 from utils import utils
@@ -35,6 +36,7 @@ class re(object):
                  plm_model_path,
                  figure_folder,
                  vocabulary_length,
+                 schema,
                  args):
         """
         Initializes the network
@@ -46,19 +48,41 @@ class re(object):
         :param args: command-line arguments
         """
 
-        # Instantiate the network and send it to the `device`
-        self.eat = ESS_plm \
+        # Save args locally for future use
+        self.device = device
+        self.figure_folder = figure_folder
+        self.schema = schema
+
+        # Instantiate the network
+        self.eat = self.load_network(number_of_relations, vocabulary_length, plm_model_path, device)
+
+        # Instantiate the log with the command-line arguments
+        self.glog = log.log(args)
+
+    def load_network(self,
+                     number_of_relations,
+                     vocabulary_length,
+                     plm_model_path,
+                     device):
+        """
+        Loads the network given a choice schema
+        :param schema: choice network
+        :param number_of_relations: Number of different relations in the labels
+        :param vocabulary_length: the length of the vocabulary, i.e. the length of the tokenizer.
+        :param plm_model_path: path to the pretrained language model
+        :param device: device where the computation will take place
+        :return: network
+        """
+
+        # switch schema
+        if self.schema == 'ESS':
+            return ESS_plm \
             .ess_plm(number_of_relations,
                      vocabulary_length,
                      plm_model_path)\
             .to(device)
-
-        # Save args locally for future use
-        self.device = device
-        self.figure_folder = figure_folder
-
-        # Instantiate the log with the command-line arguments
-        self.glog = log.log(args)
+        elif self.schema == 'Standard':
+            return cls_plm(number_of_relations, plm_model_path).to(device)
 
     def fit(self,
             dataset,
@@ -242,16 +266,8 @@ class re(object):
         # Set gradients to zero for mini-batching training
         optimizer.zero_grad()
 
-        # Retrieve X and y from the batch tuple
-        X = batch [0]
-        y = batch [1]
-        e1_indices = batch [2]
-        e2_indices = batch [3]
-
         # Perform a forward pass
-        output = self.eat(X,
-                          e1_indices,
-                          e2_indices)
+        output, y = self.perform_forward_pass(batch)
 
         loss = loss_criterion(output, y)
 
@@ -262,6 +278,31 @@ class re(object):
 
         # report loss
         return loss.item()
+
+    def perform_forward_pass(self, batch):
+        """
+        Performs a forward pass using the underlying network
+        :param batch: training batch
+        :return: output of the network and gold labels
+        """
+
+        # Retrieve X and y from the batch tuple
+        X = batch [0]
+        y = batch [1]
+
+        # Switch schema and perform forward task depending on the underlying network
+        if self.schema == 'ESS':
+
+            #  indices to the first and second start ETM
+            e1_indices = batch[2]
+            e2_indices = batch[3]
+
+            return self.eat(X,
+                            e1_indices,
+                            e2_indices), y
+
+        elif self.schema == 'Standard':
+            return self.eat(X), y
 
 
     def evaluate(self,
@@ -335,15 +376,8 @@ class re(object):
         """
 
 
-        # Retrieve X and y from the batch tuple
-        X = batch [0]
-        e1_indices = batch [2]
-        e2_indices = batch [3]
-
         # Perform a forward pass
-        output = self.eat(X,
-                          e1_indices,
-                          e2_indices)
+        output, _ = self.perform_forward_pass(batch)
 
         # Retrieve the index of that element with highest log probability from the softmax classification
         y_hat = output.topk(1)[1]

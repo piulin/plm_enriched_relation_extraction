@@ -55,6 +55,8 @@ class parser(object):
 
         self.parser.add_argument('--fig-folder','-ff', type=str, help='Path to the folder where figures will be saved', default='figures/')
 
+        self.parser.add_argument('schema', type=str, help='Select the classification schema', default='ESS', choices=['Standard','ESS'])
+
         self.parser.add_argument('--seed','-s', type=int, help='Set a seed for pytorch', default=None)
 
         self.parser.add_argument('--disable-mlflow','-dm',

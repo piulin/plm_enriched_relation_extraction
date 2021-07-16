@@ -19,6 +19,7 @@ Engine module: it is responsible of the main logic of the program.
 
 # from datasets import dataset
 from datasets.tacred.tacred import tacred
+from datasets.tacred.tacred_emt import tacred_emt
 from ai.re import re
 from utils import utils
 from tokenizer import tokenizer
@@ -47,25 +48,8 @@ def run(args):
     # Initialize a tokenizer and ID mapper (for converting tokens to IDs in the datasets)
     tokzer = tokenizer.tokenizer( args['plm_path'] )
 
-    # Datasets
-    train = None
-    dev = None
-    test = None
-
-    # If tacred option is provided, load it
-    if args['tacred']:
-
-        # retrieve the paths to the train, test, and development json
-        train_json_path, dev_json_path , test_json_path = tacred.build_file_paths(args['tacred'])
-
-        # load data splits
-        train = tacred ( train_json_path, tokzer , device )
-
-        # for dev a test dataset, we also pass the relation mapper so relations classes share the same IDs.
-        dev = tacred ( dev_json_path, tokzer, device, train.relation_mapper )
-        test = tacred ( test_json_path, tokzer, device, train.relation_mapper )
-
-
+    # get splits
+    train, dev, test = get_datasets(args, tokzer, device)
 
     # Initializes the neural network
     model = re ( train.get_number_of_relations(),
@@ -73,6 +57,7 @@ def run(args):
                  args['plm_path'],
                  args['fig_folder'],
                  len(tokzer),
+                 args['schema'],
                  args )
 
 
@@ -110,3 +95,39 @@ def setup_seeds(seed):
         random.seed(seed)
         numpy.random.seed(seed)
         torch.use_deterministic_algorithms(True)
+
+
+def get_datasets(args,
+                 tokzer,
+                 device):
+    """
+    Retrieves the datasets from disk
+    :param args: command-line arguments
+    :param tokzer: tokenizer
+    :param device: torch device id
+    :return: train, dev, and test splits
+    """
+    # Datasets
+    train = None
+    dev = None
+    test = None
+
+
+
+    # If tacred option is provided, load it
+    if args['tacred']:
+
+        # Retrieve the class of the dataset to be used given the schema
+        dataset_class = tacred_emt if args['schema'] == 'ESS' else tacred
+
+        # retrieve the paths to the train, test, and development json
+        train_json_path, dev_json_path , test_json_path = tacred.build_file_paths(args['tacred'])
+
+        # load data splits
+        train = dataset_class ( train_json_path, tokzer , device )
+
+        # for dev a test dataset, we also pass the relation mapper so relations classes share the same IDs.
+        dev = dataset_class ( dev_json_path, tokzer, device, train.relation_mapper )
+        test = dataset_class ( test_json_path, tokzer, device, train.relation_mapper )
+
+    return train, dev, test

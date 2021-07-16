@@ -143,7 +143,7 @@ def assess(dataset,
         }
     )
 
-
+# from https://github.com/yuhaozhang/tacred-relation/blob/master/utils/scorer.py
 def score(key, prediction, NO_RELATION, log, label, step = None, verbose=False):
     correct_by_relation = Counter()
     guessed_by_relation = Counter()
