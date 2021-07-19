@@ -25,8 +25,6 @@ from utils import utils
 from tokenizer import tokenizer
 import torch
 import random
-import numpy as np
-
 
 def run(args):
     """

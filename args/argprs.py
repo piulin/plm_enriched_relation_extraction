@@ -31,13 +31,13 @@ class parser(object):
         self.parser = argparse.ArgumentParser(description='Enriched Attention on PTL for Relation Extraction.',
                                               formatter_class=ArgumentDefaultsHelpFormatter)
 
-        self.parser.add_argument('--tacred','-t', type=str, help='TACRED dataset.')
+        self.parser.add_argument('--tacred','-t', type=str, help='TACRED dataset.', required=True)
         self.parser.add_argument('--batch-size','-b', type=int, help='Sets the batch size for mini-batching training.', default=16)
-        self.parser.add_argument('--learning-rate','-l', type=float, help='Sets the learning rate.', default=5e-5)
+        self.parser.add_argument('--learning-rate','-l', metavar=('PLM', 'PTL'), type=float, help='Sets the learning rates.', nargs=2, default=[1e-3, 5e-5])
 
         self.parser.add_argument('--epochs','-e', metavar='NO_EPHOCS', type=int, help='Sets the number of epochs for '
-                                                                                      'mini-batch training.',
-                                                                                        default=4)
+                                                                                      'mini-batch grad desc.',
+                                                                                        default=7)
         self.parser.add_argument('--print-every','-p', metavar='no_iterations', type=int, help='Print loss every '
                                                                                                '`no_iterations` '
                                                                                                'batches.', default=1)

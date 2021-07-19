@@ -88,3 +88,19 @@ class cls_plm(nn.Module):
 
         return X
 
+    @property
+    def plm_parameters(self):
+        """
+        Retrieves the PLM
+        :return:
+        """
+        return self.plm.parameters()
+
+    @property
+    def post_plm_parameters(self):
+        """
+        Retrieves the post transformer layers
+        :return: list of layers
+        """
+        return self.out.parameters()
+

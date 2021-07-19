@@ -106,8 +106,18 @@ class re(object):
         # define loss function. TODO: consider weights for unbalanced data.
         loss_criterion = nn.NLLLoss()
 
-        # define optimizer.
-        optimizer = optim.AdamW(lr=learning_rate, params=self.eat.parameters())
+
+        # define optimizer with different learning rates for the plm and the ptls.
+        optimizer = optim.Adam(
+            [{
+                'params': self.eat.post_plm_parameters,
+                'lr': learning_rate[0] # PTL
+            },
+            {
+                'params': self.eat.plm_parameters,
+                'lr': learning_rate[1]  # 'PLM'
+            }]
+        )
 
 
         # retrieve the batches for training
