@@ -17,7 +17,6 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
 Main function: Parsers the command-line arguments and passes the control to the main engine.
 """
 
-import engine
 from args import argprs
 
 
@@ -32,6 +31,7 @@ def main():
     print(args)
 
     # Pass the control to the engine module
+    import engine
     engine.run(args)
 
 if __name__ == '__main__':

@@ -20,6 +20,7 @@ Engine module: it is responsible of the main logic of the program.
 # from datasets import dataset
 from datasets.tacred.tacred import tacred
 from datasets.tacred.tacred_emt import tacred_emt
+from datasets.tacred.tacred_enriched import tacred_enriched
 from ai.re import re
 from utils import utils
 from tokenizer import tokenizer
@@ -56,7 +57,16 @@ def run(args):
                  args['fig_folder'],
                  len(tokzer),
                  args['schema'],
-                 args )
+                 args,
+                 # +1 accounts for the padding idx, and another +1 because the 0 value also counts as a slot
+                 # note, therefore, that the padding_idx would be `train.highest_token_entity_distance() + 1`
+                 train.highest_token_entity_distance() + 1 + 1,
+                 # TODO: move to kwargs...
+                 args['position_distance_embedding_size'] if 'position_distance_embedding_size' in args else None,
+                 # +1 accounts for the padding idx, and another +1 because the 0 value also counts as a slot
+                 train.highest_dependency_entity_distance() + 1 + 1,
+                 args['position_distance_embedding_size'] if 'position_distance_embedding_size' in args else None,
+                 args['attention_size'] if 'attention_size'in args else None)
 
 
     # Train
@@ -116,7 +126,12 @@ def get_datasets(args,
     if args['tacred']:
 
         # Retrieve the class of the dataset to be used given the schema
-        dataset_class = tacred_emt if args['schema'] == 'ESS' else tacred
+        schema_switcher = {
+            'ESS': tacred_emt,
+            'Standard': tacred,
+            'Enriched_Attention': tacred_enriched
+        }
+        dataset_class = schema_switcher.get(args['schema'], None)
 
         # retrieve the paths to the train, test, and development json
         train_json_path, dev_json_path , test_json_path = tacred.build_file_paths(args['tacred'])

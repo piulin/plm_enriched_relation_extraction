@@ -39,12 +39,11 @@ from transformers import RobertaModel
 class cls_plm(nn.Module):
 
     def __init__(self,
-                 number_of_relations,
+                 no_output_neurons,
                  plm_model_path='roberta-base'):
         """
         Sets up the network's plm and layers
-        :param number_of_relations: Number of different relations in the labels
-        :param vocabulary_length: the length of the vocabulary, i.e. the length of the tokenizer.
+        :param no_output_neurons: e.g. number of different relations in the labels
         :param plm_model_path: path to the pretrained language model
         """
 
@@ -57,7 +56,7 @@ class cls_plm(nn.Module):
         self.config = self.plm.config
 
         # Linear layer on top of the plm
-        self.out = nn.Linear(self.config.hidden_size, number_of_relations)
+        self.out = nn.Linear(self.config.hidden_size, no_output_neurons)
 
         # Softmax classification
         self.softmax = nn.LogSoftmax(dim=1)

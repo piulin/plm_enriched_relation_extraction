@@ -43,14 +43,7 @@ class tacred_emt(tacred):
             sample = sample_id_tuple[0]
 
             # tokens
-            tokens.append(sample.tokens)
-
-            # entity indices
-            e1s, e2s = sample.emt_start_indices()
-
-            # +1 to account for [CLS] token
-            e1_indices.append(e1s + 1)
-            e2_indices.append(e2s + 1)
+            tokens.append(sample.emt_tokens)
 
             # gold labels
             y.append(sample_id_tuple[1])
@@ -58,6 +51,23 @@ class tacred_emt(tacred):
 
         # retrieve tokens IDs and send them to the `device`
         X = self.tokzer.get_token_ids(tokens).to(self.device)
+
+        e1s_id, _, e2s_id, _ = self.tokzer.entity_tokens_ids()
+
+        # loop over the the subtoken ids to retrieve the EMT ids
+        for i in range(X['input_ids'].shape[0]):
+            # get subtoken ids of sentence
+            token_list = X['input_ids'][i,:]
+
+            # retrieve the positions of EMTs
+            e1s_position = (token_list == e1s_id).nonzero().item()
+            e2s_position = (token_list == e2s_id).nonzero().item()
+
+            # append them to the list
+            e1_indices.append(e1s_position)
+            e2_indices.append(e2s_position)
+
+
 
         # put targets into tensors and send them to the `device`
         y = torch.tensor( y ).to(self.device)

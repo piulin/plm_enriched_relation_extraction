@@ -69,3 +69,17 @@ class dataset(object):
         :return:
         """
         pass
+
+    def highest_token_entity_distance(self):
+        """
+        Retrieves the highest distance from a token to an entity in the whole dataset
+        :return:
+        """
+        pass
+
+    def highest_dependency_entity_distance(self):
+        """
+        Retrieves the maximum distance of an entity to a token in the dependency parse for the whole dataset
+        :return:
+        """
+        pass

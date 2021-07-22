@@ -47,7 +47,7 @@ class tokenizer(object):
         """
 
         # Use the tokenizer to get the ids (of those words that have been previously tokenized)
-        # option return_tesors: 'pt' (pytorch) because the model cannot work with raw python lists.
+        # option return_tensors: 'pt' (pytorch) because the model cannot work with raw python lists.
         # option padding: we need batched tensors with the same length.
         # add_special_tokens: use new added special tokens
         encoded_ids = self.tokzer( samples,
@@ -64,3 +64,35 @@ class tokenizer(object):
         :return:
         """
         return len(self.tokzer)
+
+    def entity_tokens_ids(self):
+        """
+        Retrieves the ids assigned to the tokens `constants.E1S`, `constants.E1E`, `constants.E2S`, and constants.E2E,ç
+        respectively
+        :return:
+        """
+        return self.tokzer.additional_special_tokens_ids
+
+    def subtoken_mapping(self, words):
+        """
+        Given a sequence of words or tokens `words`, this method retrieves the generated subtokens as well as the mapping
+        to the original `words list`
+        :param words: token or workd list
+        :return: subtoken list, and subtoken mapping
+        """
+
+        tokens = []
+        tokens_map = []
+
+        # iterate words in list
+        for i, word in enumerate(words):
+
+            # tokenize
+            _tokens = self.tokzer.tokenize(word, add_prefix_space=True)
+
+            # map subtokens with tokens/words
+            for token in _tokens:
+                tokens.append(token)
+                tokens_map.append(i)
+
+        return tokens, tokens_map

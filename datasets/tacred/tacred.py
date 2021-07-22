@@ -42,6 +42,10 @@ class tacred(dataset):
         self.path_to_json = path_to_json
         self.device = device
 
+        # keeps the number of embeddings for token and dependency distances
+        self.highest_token_distance = 0
+        self.highest_dependency_distance = 0
+
         # Each one of the instances of the dataset and its corresponding relation ID
         self.samples, self.y = self.build_samples_from_json(self.path_to_json)
 
@@ -59,6 +63,10 @@ class tacred(dataset):
         train_file = join( dataset_folder, 'train.json' )
         test_file = join( dataset_folder, 'test.json' )
         dev_file = join( dataset_folder, 'dev.json' )
+
+        # train_file = join( dataset_folder, 'mini.json' )
+        # test_file = join( dataset_folder, 'mini.json' )
+        # dev_file = join( dataset_folder, 'mini.json' )
 
         return train_file, dev_file, test_file
 
@@ -85,7 +93,16 @@ class tacred(dataset):
             for instance in dump:
 
                 # Add sample
-                samples.append(sample(instance))
+                s = sample(instance)
+                samples.append(s)
+
+                # update distance of entity to token
+                if self.highest_token_distance < s.highest_token_entity_distance:
+                    self.highest_token_distance = s.highest_token_entity_distance
+
+                # also update highest distance in the dependency parse
+                if self.highest_dependency_distance < s.highest_dependency_entity_distance:
+                    self.highest_dependency_distance = s.highest_dependency_entity_distance
 
                 # retrieve relation ID
                 y.append( self.relation_mapper.T2id(instance['relation']))
@@ -174,7 +191,19 @@ class tacred(dataset):
             json.dump(json_subset, f)
 
 
+    def highest_token_entity_distance(self):
+        """
+        Retrieves the highest distance from a token to an entity in the token sequence for the whole dataset
+        :return:
+        """
+        return self.highest_token_distance
 
+    def highest_dependency_entity_distance(self):
+        """
+        Retrieves the maximum distance of an entity to a token in the dependency parse for the whole dataset
+        :return:
+        """
+        return self.highest_dependency_distance
 
     def no_relation_label(self):
         """

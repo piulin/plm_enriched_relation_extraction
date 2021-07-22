@@ -13,11 +13,14 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
 """
 
 """
-This module is intended to keep the constants used in the program
+This module is intended to keep the constants and literals
 """
 
 # Entity Marker Tokens (EMT)
-E1S = '[E1S]'
-E1E = '[E1E]'
-E2S = '[E2S]'
-E2E = '[E2E]'
+E1S = '<e1>'
+E1E = '</e1>'
+E2S = '<e2>'
+E2E = '</e2>'
+
+# padding index used for sdp flag
+sdp_flag_padding_index = 0
