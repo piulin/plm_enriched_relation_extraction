@@ -24,18 +24,19 @@ import torch
 from datetime import datetime
 import os
 
-def as_minutes(s):
+def as_minutes(s: float) -> str:
     """
     Converts from seconds to minutes
     :param s: seconds
-    :return: string with seconds and minutes
+    :return: seconds and minutes formatted in a string
     """
     m = math.floor(s / 60)
     s -= m * 60
     return '%dm %ds' % (m, s)
 
 
-def time_since(since, percent):
+def time_since(since: float,
+               percent: float) -> str:
     """
     Retrieves the elapsed time between two moments in seconds, and the remaining time for ending the task
     :param since: start timestamp
@@ -48,7 +49,7 @@ def time_since(since, percent):
     rs = es - s
     return '%s (- %s)' % (as_minutes(s), as_minutes(rs))
 
-def get_device(cuda_device):
+def get_device(cuda_device: int) -> torch.device:
     """
     Retrieves the torch device associated with GPU `cuda_device`. If CUDA is not available or `cuda_device == -1`,
     then a CPU device is returned
@@ -59,16 +60,16 @@ def get_device(cuda_device):
                           if torch.cuda.is_available() and cuda_device != -1
                           else "cpu")
 
-def timestamp():
+def timestamp() -> str :
     """
     Retrieves a string corresponding to the current timestamp
     :return:
     """
 
-    now = datetime.now()
+    now: datetime = datetime.now()
     return now.strftime("%Y%m%d%H%M%S")
 
-def create_folder(path):
+def create_folder(path: str) -> None:
     """
     Creates a folder given a `path` if there is no directory of the same name
     :param path:

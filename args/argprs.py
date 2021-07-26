@@ -11,7 +11,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
     and Dr. Heike Adel-Vu  (BCAI).
 -------------------------------------------------------------------------------------
 """
-
+from typing import Dict, Union
 
 """
 Argparse class: Defines and manages the command-line argument syntax and values. Check [-h] to learn more.
@@ -42,7 +42,11 @@ class parser(object):
         self.configure_train_parser()
 
 
-    def configure_train_parser(self):
+    def configure_train_parser(self) -> None:
+        """
+        Configures the train subparser
+        :return:
+        """
 
 
         self.train_parser = self.subparsers.add_parser('train', help='Train the predictor', formatter_class=ArgumentDefaultsHelpFormatter)
@@ -74,10 +78,10 @@ class parser(object):
                                             '`no_iterations` '
                                             'batches.', default=1)
 
-        self.train_parser.add_argument('--plm-path', '-pp', type=str,
-                                       help='Path to the pretained langauge model for RoBERTa.', default='roberta-base')
+        self.train_parser.add_argument('--plm-model-path', '-pmp', type=str,
+                                       help='Path to the pretrained language  model for RoBERTa.', default='roberta-base')
 
-        self.train_parser.add_argument('--fig-folder', '-ff', type=str,
+        self.train_parser.add_argument('--figure-folder', '-ff', type=str,
                                        help='Path to the folder where figures will be saved.', default='figures/')
 
         self.train_parser.add_argument('--seed', '-s', type=int, help='Set a seed for pytorch.', default=None)
@@ -95,11 +99,11 @@ class parser(object):
                                                               formatter_class=ArgumentDefaultsHelpFormatter)
         self.enriched_attention_parser.set_defaults(schema='Enriched_Attention')
 
-        self.enriched_attention_parser.add_argument('--dependency-distance-embedding-size','-ddes', type=int,
+        self.enriched_attention_parser.add_argument('--dependency-distance-size', '-des', type=int,
                                                     help='Size of the dependency distance embeddings.',
                                                     default=16)
 
-        self.enriched_attention_parser.add_argument('--position-distance-embedding-size', '-pdes', type=int,
+        self.enriched_attention_parser.add_argument('--position-embedding-size', '-pes', type=int,
                                                     help='Size of the token distance embeddings.',
                                                     default=16)
 
@@ -107,7 +111,7 @@ class parser(object):
                                                     help='Number of neurons of the attention layer.',
                                                     default=128)
 
-    def parse_args(self):
+    def parse_args(self) -> Dict[str, Union[int, str, float]] :
 
         # Retrieve the arguments as a dictionary
         args = vars(self.parser.parse_args())

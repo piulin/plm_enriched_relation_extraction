@@ -13,37 +13,29 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
 """
 
 """
--------------------------------------------------------------------------------------
-Exploring Linguistically Enriched Transformers for Low-Resource Relation Extraction:
-    --Enriched Attention on PLM
-
-    by Pedro G. Bascoy  (Bosch Center for Artificial Intelligence (BCAI)),
-
-    with the supervision of
-
-    Prof. Dr. Sebastian Padó (Institut für Machinelle Sprachverarbeitung (IMS)),
-    and Dr. Heike Adel-Vu  (BCAI).
--------------------------------------------------------------------------------------
-"""
-
-"""
 cls_plm class: it implements the cls relation representation of Matching the Blanks: Distributional Similarity for
 Relational Learning.
 """
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import RobertaModel
+from transformers import RobertaModel, PretrainedConfig, BatchEncoding
+from collections import Iterable
+
+from torch import Tensor
+from torch.nn import Linear, LogSoftmax
 
 
 class cls_plm(nn.Module):
 
     def __init__(self,
-                 no_output_neurons,
-                 plm_model_path='roberta-base'):
+                 number_of_relations: int,
+                 plm_model_path: str = 'roberta-base',
+                 **kwargs):
         """
         Sets up the network's plm and layers
-        :param no_output_neurons: e.g. number of different relations in the labels
+        :param number_of_relations: e.g. number of different relations in the labels
         :param plm_model_path: path to the pretrained language model
         """
 
@@ -51,24 +43,22 @@ class cls_plm(nn.Module):
         super(cls_plm, self).__init__()
 
         # Load the pretrained language model
-        self.plm = RobertaModel.from_pretrained(plm_model_path)
+        self.plm: RobertaModel = RobertaModel.from_pretrained(plm_model_path)
 
-        self.config = self.plm.config
+        self.config: PretrainedConfig = self.plm.config
 
         # Linear layer on top of the plm
-        self.out = nn.Linear(self.config.hidden_size, no_output_neurons)
+        self.out: Linear = nn.Linear(self.config.hidden_size, number_of_relations)
 
         # Softmax classification
-        self.softmax = nn.LogSoftmax(dim=1)
+        self.softmax: LogSoftmax = nn.LogSoftmax(dim=1)
 
     def forward(self,
-                X):
+                X: BatchEncoding) -> Tensor:
         """
         Performs a forward pass.
         :param X: Batch to be passed.
-        :param e1_indices: indices to locate E1S
-        :param e2_indices: indices to locate E2S
-        :return:
+        :return: output of the network with shape [batch_size, n_classes]
         """
 
         # Pass the data onto the pretrained language model
@@ -77,18 +67,18 @@ class cls_plm(nn.Module):
         # Retrieve the representation of sentences ([CLS] tokens)
         # outputs.last_hidden_state shape(batch_size, sequence_length, hidden_size). Sequence length also accounts
         # for the padding introduced in the tokenization process
-        X = X.last_hidden_state[:,0,:]
+        X: Tensor = X.last_hidden_state[:,0,:] # X[batch_size, hidden_size]
 
         # Last linear layer
-        X = self.out(X)
+        X: Tensor = self.out(X) # X[batch_size, n_classes]
 
         # classification
-        X = self.softmax(X)
+        X: Tensor = self.softmax(X) # X[batch_size, n_classes]
 
         return X
 
     @property
-    def plm_parameters(self):
+    def plm_parameters(self) -> Iterable:
         """
         Retrieves the PLM
         :return:
@@ -96,7 +86,7 @@ class cls_plm(nn.Module):
         return self.plm.parameters()
 
     @property
-    def post_plm_parameters(self):
+    def post_plm_parameters(self) -> Iterable:
         """
         Retrieves the post transformer layers
         :return: list of layers

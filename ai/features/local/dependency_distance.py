@@ -11,6 +11,8 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
     and Dr. Heike Adel-Vu  (BCAI).
 -------------------------------------------------------------------------------------
 """
+from torch import Tensor
+from torch.nn import Embedding
 
 """
 dependency_distance module: models the representation of the distance to the two query entities in the dependency
@@ -23,8 +25,8 @@ import torch
 class dependency_distance(nn.Module):
 
     def __init__(self,
-                 num_embeddings,
-                 embedding_size):
+                 num_embeddings: int,
+                 embedding_size: int):
         """
         Configures the module
         :param num_embeddings: number of distinct distances
@@ -35,15 +37,15 @@ class dependency_distance(nn.Module):
         super(dependency_distance, self).__init__()
 
         # embedding for distances to entity 1
-        self.de1 = nn.Embedding(num_embeddings, embedding_size, padding_idx=num_embeddings-1)
+        self.de1: Embedding = nn.Embedding(num_embeddings, embedding_size, padding_idx=num_embeddings-1)
 
         # embedding for distances to entity 2
-        self.de2 = nn.Embedding(num_embeddings, embedding_size, padding_idx=num_embeddings-1)
+        self.de2: Embedding = nn.Embedding(num_embeddings, embedding_size, padding_idx=num_embeddings-1)
 
-        self.embedding_size = embedding_size
+        self.embedding_size: int = embedding_size
 
     @property
-    def output_size(self):
+    def output_size(self) -> int:
         """
         Retrieves the size of the produced local features
         :return:
@@ -52,23 +54,23 @@ class dependency_distance(nn.Module):
 
 
     def forward(self,
-                de1,
-                de2,
-                f):
+                de1: Tensor,
+                de2: Tensor,
+                f: Tensor) -> Tensor:
         """
         Computes the local features as the concatenation of the distance embeddings and the sdp flag.
-        :param de1: distances to entity 1
-        :param de2: distances to entity 2
-        :param f: flag indicating wether tokens are in the SDP
-        :return: dependency distance layer.
+        :param de1: distances to entity 1 [batch_size, padded_sentence_length]
+        :param de2: distances to entity 2 [batch_size, padded_sentence_length]
+        :param f: flag indicating wether tokens are in the SDP [batch, sentence_length]
+        :return: output of the network of shape [batch_size, padded_sentence_length -2, 2*embedding_size+1]
         """
 
-        # shape (batch, sentence_length, dep_embedding)
-        a = self.de1(de1)
-        b = self.de2(de2)
+
+        a = self.de1(de1) # a[batch, sentence_length, embedding_size]
+        b = self.de2(de2) # b[batch, sentence_length, embedding_size]
 
         # convert shape (batch, sentence_length) into shape (batch, sentence_length, 1), to allow concatenation
-        f_us = f.unsqueeze(2)
+        f_us = f.unsqueeze(2) # f[batch, sentence_length, 1]
 
         # return local feature: concatenation of distance embeddings and flag
-        return torch.cat ( (a, b, f_us), dim=2)
+        return torch.cat ( (a, b, f_us), dim=2) # [batch_size, padded_sentence_length -2, 2*embedding_size+1]

@@ -12,88 +12,98 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
 -------------------------------------------------------------------------------------
 """
 import random
+from typing import List, Any, Dict, Tuple
 
 import torch
+from torch import Tensor
+from transformers import BatchEncoding
+
 from datasets.dataset import dataset
 import json
 from os.path import join
 from datasets.tacred.sample import sample
 from tokenizer import mapper
+from tokenizer import tokenizer
+from tokenizer.mapper import seq_id
 
 
 class tacred(dataset):
 
     def __init__( self,
-                  path_to_json,
-                  tokzer,
-                  device,
-                  relation_mapper=None):
+                  path_to_json: str,
+                  tokzer: tokenizer,
+                  device: torch.device,
+                  relation_mapper: seq_id = None):
         """
         Loads a dataset into memory
-        :param path_to_json: path to the TACRED folder
+        :param path_to_json: path to the TACRED dataset
         :param tokzer: tokenizer
         :param device: torch device where the computation will take place
-        :param relation_mapper: a mapper than translater relations to IDs and vice versa
+        :param relation_mapper: a mapper than translates relations into IDs and vice versa
         """
 
-        # Get a mapper of relations to IDs.
-        self.relation_mapper = mapper.seq_id() if relation_mapper is None else relation_mapper
+        # Get a mapper of relations to IDs (either the provided or a new one)
+        self.relation_mapper: seq_id = mapper.seq_id() if relation_mapper is None else relation_mapper
 
-        self.path_to_json = path_to_json
-        self.device = device
+        self.path_to_json: str = path_to_json
+        self.device: torch.device = device
 
         # keeps the number of embeddings for token and dependency distances
-        self.highest_token_distance = 0
-        self.highest_dependency_distance = 0
+        self.highest_token_distance: int = 0
+        self.highest_dependency_distance: int = 0
 
         # Each one of the instances of the dataset and its corresponding relation ID
+        self.samples: List[sample]
+        self.y: List[int]
         self.samples, self.y = self.build_samples_from_json(self.path_to_json)
 
-        self.tokzer = tokzer
+        self.tokzer: tokenizer = tokzer
 
 
     @staticmethod
-    def build_file_paths(dataset_folder):
+    def build_file_paths(dataset_folder: str) -> Tuple[str, str, str]:
         """
         Builds the paths to the train, test, and development splits
         :param dataset_folder: base folder where the splits live.
         :return: Triple with the paths to the train, test, and development splits, respectively,
         """
 
-        train_file = join( dataset_folder, 'train.json' )
-        test_file = join( dataset_folder, 'test.json' )
-        dev_file = join( dataset_folder, 'dev.json' )
+        # train_file = join( dataset_folder, 'train.json' )
+        # test_file = join( dataset_folder, 'test.json' )
+        # dev_file = join( dataset_folder, 'dev.json' )
 
-        # train_file = join( dataset_folder, 'mini.json' )
-        # test_file = join( dataset_folder, 'mini.json' )
-        # dev_file = join( dataset_folder, 'mini.json' )
+        train_file: str = join( dataset_folder, 'mini.json' )
+        test_file: str = join( dataset_folder, 'mini.json' )
+        dev_file: str = join( dataset_folder, 'mini.json' )
 
         return train_file, dev_file, test_file
 
 
-    def build_samples_from_json(self, file):
+    def build_samples_from_json(self,
+                                file: str) -> Tuple[List[sample], List[int]]:
         """
         Parses the content of json splits.
         :param file: Path to the json split
-        :return: array of samples.
+        :return: List of samples and its corresponding labels (GT)
         """
 
         # read json file
         with open(file, 'r') as fp:
 
             # parse json
-            dump = json.load(fp)
+            dump: List[Dict] = json.load(fp)
 
             # instantiate array of samples
-            samples = []
+            samples: List[sample] = []
 
             # instantiate array of labels
-            y = []
+            y: List[int] = []
 
+            instance: Dict[str, Any]
             for instance in dump:
 
                 # Add sample
-                s = sample(instance)
+                s: sample = sample(instance)
                 samples.append(s)
 
                 # update distance of entity to token
@@ -110,7 +120,7 @@ class tacred(dataset):
             return samples, y
 
 
-    def get_tokens_of_samples(self):
+    def get_tokens_of_samples(self) -> List[List[str]]:
         """
         Retrieves the raw tokens of the dataset.
         :return: list of raw tokens
@@ -119,7 +129,7 @@ class tacred(dataset):
 
 
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Retrieves the length of the dataset.
         :return:
@@ -127,37 +137,39 @@ class tacred(dataset):
 
         return len( self.samples )
 
-    def __getitem__(self, i):
+    def __getitem__(self,
+                    i: int) -> Tuple[sample, int]:
         """
         Retrieves the i-th sample
         :param i: index
-        :return: X and y
+        :return: sample X and y label
         """
 
         return self.samples[ i ], self.y [ i ]
 
 
-    def collate(self, data):
+    def collate(self,
+                data: List[Tuple[sample, int]]) -> Tuple[BatchEncoding, Tensor]:
         """
         The collate function transforms the raw tokens into tokens IDs, puts the target Y list into tensors,
         and collects the start indices for mentioned entities of samples
         :param data: list of tuples (samples, y)
-        :return: X and y data in tensors, and entity indices
+        :return: X and y[batch_size] data as tensors.
         """
 
         # get the raw tokens
-        tokens = [ sample_id_tuple[0].data_dic['token'] for sample_id_tuple in data ]
+        tokens: List[List[str]] = [ sample_id_tuple[0].data_dic['token'] for sample_id_tuple in data ]
 
-        # retrieve tokens IDs and send them to the `device`
-        X = self.tokzer.get_token_ids(tokens).to(self.device)
+        # retrieve tokens IDs and send them to the `device`.
+        X: BatchEncoding = self.tokzer.get_token_ids(tokens).to(self.device)
 
-        # put targets into tensors and send them to the `device`
-        y = torch.tensor( [ sample_id_tuple[1] for sample_id_tuple in data ] ).to(self.device)
+        # put targets into tensors and send them to the `device`. y[batch_size]
+        y: Tensor = torch.tensor( [ sample_id_tuple[1] for sample_id_tuple in data ] ).to(self.device)
 
         return X, y
 
 
-    def get_number_of_relations(self):
+    def get_number_of_relations(self) -> int:
         """
         Retrieves the number of different relations in the dataset.
         :return:
@@ -165,7 +177,8 @@ class tacred(dataset):
         return self.relation_mapper.no_entries()
 
 
-    def get_relation_label_of_id(self, id):
+    def get_relation_label_of_id(self,
+                                 id: int) -> str:
         """
         Retrieves the label of relation with ID `id`
         :param id: relation ID
@@ -174,8 +187,8 @@ class tacred(dataset):
         return self.relation_mapper.id2T(id)
 
     def save_subset(self,
-                    path,
-                    no_samples):
+                    path: str,
+                    no_samples: int) -> None:
         """
         Saves a random subset of the dataset with `no_samples` samples to disk.
         :param path: save path
@@ -185,27 +198,27 @@ class tacred(dataset):
         with open(path, 'w') as f:
 
             # selects random samples and puts the dictionaries into a nice array
-            json_subset = [ s.data_dic for s in random.sample( self.samples, no_samples ) ]
+            json_subset: List[dict] = [ s.data_dic for s in random.sample( self.samples, no_samples ) ]
 
             # save it into disk
             json.dump(json_subset, f)
 
 
-    def highest_token_entity_distance(self):
+    def highest_token_entity_distance(self) -> int:
         """
         Retrieves the highest distance from a token to an entity in the token sequence for the whole dataset
         :return:
         """
         return self.highest_token_distance
 
-    def highest_dependency_entity_distance(self):
+    def highest_dependency_entity_distance(self) -> int:
         """
         Retrieves the maximum distance of an entity to a token in the dependency parse for the whole dataset
         :return:
         """
         return self.highest_dependency_distance
 
-    def no_relation_label(self):
+    def no_relation_label(self) -> int:
         """
         Returns the ID of the no relation type.
         :return:

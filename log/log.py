@@ -11,6 +11,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
     and Dr. Heike Adel-Vu  (BCAI).
 -------------------------------------------------------------------------------------
 """
+from typing import Any, Dict
 
 """
 log class: it is responsible of keeping track of the training hyperparameters, as well as the execution logs.
@@ -20,13 +21,14 @@ import mlflow
 
 class log (object) :
 
-    def __init__(self, args):
+    def __init__(self,
+                 args: dict):
         """
         Initializes mlflow
-        :param args: command-line arguments
+        :param args: parameters to be logged
         """
 
-        self.enabled = not args ['disable_mlflow']
+        self.enabled: bool = not args ['disable_mlflow']
 
         # if not disabled by command-line, the init a new run
         if self.enabled:
@@ -44,7 +46,9 @@ class log (object) :
         else:
             print('MLFlow is disabled.')
 
-    def log_param(self, k, v):
+    def log_param(self,
+                  k: str,
+                  v: Any) -> None:
         """
         Adds a parameter to the log
         :param k: key
@@ -54,7 +58,8 @@ class log (object) :
         if self.enabled:
             mlflow.log_param(k,v)
 
-    def log_metrics(self, args):
+    def log_metrics(self,
+                    args: Dict[str, Any]) -> None:
         """
         Logs a metric
         :param step: identifier
@@ -65,7 +70,7 @@ class log (object) :
             mlflow.log_metrics( ** args )
 
     def log_artifact(self,
-                     path_to_artifact):
+                     path_to_artifact: str) -> None:
         """
         Logs files into mlflow
         :param path_to_artifact: path to the file to be log

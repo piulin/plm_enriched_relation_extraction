@@ -17,10 +17,10 @@ This module is intended to keep the constants and literals
 """
 
 # Entity Marker Tokens (EMT)
-E1S = '<e1>'
-E1E = '</e1>'
-E2S = '<e2>'
-E2E = '</e2>'
+E1S: str = '<e1>'
+E1E: str = '</e1>'
+E2S: str = '<e2>'
+E2E: str = '</e2>'
 
 # padding index used for sdp flag
-sdp_flag_padding_index = 0
+sdp_flag_padding_index: int = 0

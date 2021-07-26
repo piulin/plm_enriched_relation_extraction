@@ -11,6 +11,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
     and Dr. Heike Adel-Vu  (BCAI).
 -------------------------------------------------------------------------------------
 """
+from typing import Any, Dict
 
 """
 seq_id class: it is responsible of mapping an object to an unique integer ID and vice versa.
@@ -18,27 +19,31 @@ seq_id class: it is responsible of mapping an object to an unique integer ID and
 
 class seq_id(object):
 
-    def __init__(self, idx=0, lock_available=False):
+    def __init__(self,
+                 idx: int = 0,
+                 lock_available: bool = False):
         """
-        Sets up the dictionaries and indexes required
+        Sets up the dictionaries and indexes
         :param idx: starting index
         :param lock_available: adds an unknown entry '<UNKNOWN>' entry associated with index `idx`.
         """
 
         # Sets up dictionaries.
-        self.freq_dict_ = {}
-        self.T_dict_ = {}
-        self.id_dict_ = {}
+        self.freq_dict_: Dict[Any, int] = {}
+        self.T_dict_: Dict[Any, int] = {}
+        self.id_dict_: Dict[int, Any] = {}
 
         # Sets up starting index.
-        self.idx_ = idx
+        self.idx_: int = idx
 
         # If lock, then introduce a mock work to the vocabulary
         if lock_available:
             self.T2id('<UNKNOWN>')
 
 
-    def T2id(self, T, lock=False):
+    def T2id(self,
+             T: Any,
+             lock: bool = False) -> int:
         """
         Assings to element T an new id if T is not in the dictionary, otherwise it retrieves its previously assigned id.
         :param T: element.
@@ -51,7 +56,7 @@ class seq_id(object):
         if T in self.T_dict_.keys():
 
             # retrieve id
-            id = self.T_dict_[T]
+            id: int = self.T_dict_[T]
 
             # Update frequency of element
             self.freq_dict_[id] = self.freq_dict_[id] + 1
@@ -71,7 +76,8 @@ class seq_id(object):
 
             return self.idx_ - 1
 
-    def id2T(self, id):
+    def id2T(self,
+             id: int) -> Any:
         """
         Retrieves the object T given an ID.
         :param id: ID associated with object T.
@@ -79,7 +85,7 @@ class seq_id(object):
         """
         return self.id_dict_[id]
 
-    def no_entries(self):
+    def no_entries(self) -> int:
         """
         Retrieves the current indexing index
         :return:

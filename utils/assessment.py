@@ -11,6 +11,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
     and Dr. Heike Adel-Vu  (BCAI).
 -------------------------------------------------------------------------------------
 """
+from pandas import DataFrame
 
 """
 assessment module: Assess the performance of a model.
@@ -26,94 +27,109 @@ import matplotlib.pyplot as plt
 from utils import utils
 import os
 from collections import Counter
+from datasets.dataset import dataset
+from log.log import log
+from typing import List, Tuple
+from numpy import ndarray
 
-def plot_confusion_matrix(cm,
-                          classes,
-                          savefolder,
-                          filename = utils.timestamp() + '.png',
-                          figsize = (30,20)):
+
+def plot_confusion_matrix(cm: ndarray,
+                          classes: List[str],
+                          savefolder: str,
+                          filename: str = utils.timestamp() + '.png',
+                          figsize: Tuple[int, int] = (30,20)) -> str:
     """
     Creates an image of a confusion matrix.
-    :param cm: confusion matrix
-    :param classes: lables for each class
+    :param cm: confusion matrix of shape (n_classes, n_classes)
+    :param classes: string labels for each class of size n_classes
     :param savefolder: folder where the image will be saved
     :param filename: name for the image file
     :param figsize: size of the image
-    :return: full path to the saved image
+    :return: path to the saved image
     """
 
     # construct a dataframe from the confusion matrix
-    df_cm = pd.DataFrame(cm, index = [i for i in classes],
+    df_cm: DataFrame = pd.DataFrame(cm, index = [i for i in classes],
                   columns = [i for i in classes])
 
     # create a plot
-    plt.figure(figsize = figsize )
+    plt.figure( figsize = figsize )
 
     # dye it as a heat map
     sn.heatmap(df_cm, annot=True, fmt='g')
 
     # save it into a file
-    savepath = os.path.join(savefolder, filename)
+    savepath: str = os.path.join(savefolder, filename)
     plt.savefig(savepath)
 
     return savepath
 
 
-def assess(dataset,
-           y,
-           y_hat,
-           log,
-           figure_folder,
-           label='default',
-           plot=True,
-           step=None):
+def assess(dataset: dataset,
+           y: List[int],
+           y_hat: List[int],
+           log: log,
+           figure_folder: str,
+           label: str = 'default',
+           plot: bool = True,
+           step: int = None) -> None:
 
     """
     Asses the performance of the model given gold and predicted labels
-    :param dataset: dataset that is assessed
-    :param y: gold labels
-    :param y_hat: predicted labels
-    :param log: log system
-    :param figure_folder: path to the folder containing figures
-    :param label: it is used to name the assessment (e.g. dev or test) in the logs
-    :param plot: creates and logs a plot of the confusion matrix
-    :param step: x axis value for logs
+    :param dataset: dataset to be assessed
+    :param y: gold labels (size n)
+    :param y_hat: predicted labels (same size n)
+    :param log: log system, to post performance metrics
+    :param figure_folder: save figures in this folder if `plot` is `True`
+    :param label: Name the assessment (e.g. dev or test) in the logs
+    :param plot: saves the confusion matrix as a png figure into the `figure_folder` folder
+    :param step: optional x axis value used in the log system
     :return:
     """
 
 
     # check dimensions match
-    if ( len(y) != len(y_hat) ):
-        print("Cannot assess. Dimension mismatch.", file=sys.stderr)
+    assert ( len(y) == len(y_hat) )
 
     # Remove no relation TPs
     y, y_hat = remove_no_relation(dataset, y, y_hat)
 
     # compute confusion matrix from true and predicted labels
-    cm = confusion_matrix(y, y_hat)
+    cm: ndarray = confusion_matrix(y, y_hat) # cm[n_classes,n_classes]
 
     # get relation labels from ids
-    labels = [dataset.get_relation_label_of_id(i) for i in get_unique_labels(y,y_hat)]
+    labels: List[str] = [dataset.get_relation_label_of_id(i) for i in get_unique_labels(y,y_hat)]
 
     # create a plot of the confusion matrix
     if plot:
-        savepath = plot_confusion_matrix(cm,
+        savepath: str = plot_confusion_matrix(cm,
                                          labels,
                                          figure_folder,
                                          label + '-step-' + str(0 if step is None else step) + '-' + utils.timestamp() + '.png')
         log.log_artifact(savepath)
 
     # Retrieve performance metrics
+    w_precision: float
+    w_recall: float
+    w_fscore: float
 
     w_precision, \
     w_recall, \
     w_fscore, \
     _ = precision_recall_fscore_support(y, y_hat, average='weighted', zero_division=0)
 
+    mi_precision: float
+    mi_recall: float
+    mi_fscore: float
+
     mi_precision, \
     mi_recall, \
     mi_fscore, \
     _ = precision_recall_fscore_support(y, y_hat, average='micro',  zero_division=0)
+
+    ma_precision: float
+    ma_recall: float
+    ma_fscore: float
 
     ma_precision, \
     ma_recall, \
@@ -235,22 +251,23 @@ def score(key, prediction, NO_RELATION, log, label, step = None, verbose=False):
 
     return prec_micro, recall_micro, f1_micro
 
-def get_unique_labels(y, y_hat):
+def get_unique_labels(y: List[int],
+                      y_hat: List[int]) -> List[int]:
     """
     Get sorted and unique classes from both gold and predicted classes.
-    :param y: gold labels
-    :param y_hat: predicted labels
+    :param y: gold labels (size n)
+    :param y_hat: predicted labels (also size n)
     :return: list consisting of sorted and unique classes
     """
 
     # copy list
-    ys = list(y)
+    ys: List[int] = list(y)
 
     # make one big list
     ys.extend(y_hat)
 
-    # Convert it into numpy array
-    ys = np.array(ys)
+    # Convert it into a numpy array
+    ys: ndarray = np.array(ys) # ys[n]
 
     # unique
     ys = np.unique(ys)
@@ -259,24 +276,27 @@ def get_unique_labels(y, y_hat):
 
     return list(ys)
 
-def remove_no_relation(dataset, y, y_hat):
+def remove_no_relation( dataset: dataset,
+                       y: List[int],
+                       y_hat: List[int] ) -> Tuple[List[int], List[int]]:
     """
-    Removes no relation TP from the gold standard and the predicted labels
+    Removes no-relation TP (true positive) from the gold standard and the predicted labels
     :param y: gold standard
     :param y_hat: predicted labels
-    :return: gold standard and predicted labels without no relation TPs.
+    :return: gold standard and predicted labels without no-relation TPs.
     """
 
     # retrieve the no relation ID
-    no_relation_id = dataset.no_relation_label()
+    no_relation_id: int = dataset.no_relation_label()
 
 
     # Define output lists
-    ny = []
-    ny_hat = []
+    ny: List[int] = []
+    ny_hat: List[int] = []
 
 
     # Loop over the gold standard and predicted labels
+    i: int
     for i in range(len(y)):
 
         # if gold and predicted labels are no relation, then we skip them

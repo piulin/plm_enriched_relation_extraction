@@ -18,17 +18,22 @@ Main function: Parsers the command-line arguments and passes the control to the 
 """
 
 from args import argprs
+from typing import Dict, Union
 
 
-def main():
+def main() -> None:
+    """
+    Parses the command-line arguments and hands over the control to the engine
+    :return:
+    """
 
     # Get the command-line parser
-    prs = argprs.parser()
+    prs : argprs.parser = argprs.parser()
 
     # Parse command-line arguments
-    args = prs.parse_args()
+    args : dict = prs.parse_args()
 
-    print(args)
+    print(f"Command-line args: {args}")
 
     # Pass the control to the engine module
     import engine

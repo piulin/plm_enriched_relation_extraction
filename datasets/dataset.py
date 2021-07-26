@@ -11,14 +11,15 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
     and Dr. Heike Adel-Vu  (BCAI).
 -------------------------------------------------------------------------------------
 """
+from typing import List, Tuple, Any
 
 """
-Class dataset: defines the base methods for all kinds of datasets, e.g. ACE05 and TACRED
+Class dataset: defines the methods that a dataset needs to implement in order to perform training
 """
 
 class dataset(object):
 
-    def get_tokens_of_samples(self):
+    def get_tokens_of_samples(self) ->  List[List[str]]:
         """
         Retrieves the tokens of each sample
         :return: List of tokens for each sample.
@@ -26,36 +27,39 @@ class dataset(object):
         pass
 
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Gets the length of the dataset
         :return:
         """
         pass
 
-    def __getitem__(self, i):
+    def __getitem__(self,
+                    i: int) -> Tuple[Any, int]:
         """
-        Retrieves the i-th sample of the dataset.
+        Retrieves the i-th sample of the dataset, and its corresponding label.
         :param i: index
-        :return: i-th sample
+        :return: i-th sample and label
         """
         pass
 
-    def collate(self, data):
+    def collate(self,
+                data:  List[Tuple[Any, int]]) -> Any:
         """
         Provides batch tuple in the form (X,y)
         :param data:  list of tuples (samples, y)
-        :return:  X and y data in tensors
+        :return: collated data for the learning algorithm
         """
 
-    def get_number_of_relations(self):
+    def get_number_of_relations(self) -> int:
         """
         Retrieves the number of different relations in the dataset.
         :return:
         """
         pass
 
-    def get_relation_label_of_id(self, id):
+    def get_relation_label_of_id(self,
+                                 id: int) -> str:
         """
         Retrieves the label of relation with ID `id`
         :param id: relation ID
@@ -63,21 +67,21 @@ class dataset(object):
         """
         pass
 
-    def no_relation_label(self):
+    def no_relation_label(self) -> int:
         """
-        Returns the ID of the no relation type.
+        Returns the ID of the no-relation type.
         :return:
         """
         pass
 
-    def highest_token_entity_distance(self):
+    def highest_token_entity_distance(self) -> int:
         """
         Retrieves the highest distance from a token to an entity in the whole dataset
         :return:
         """
         pass
 
-    def highest_dependency_entity_distance(self):
+    def highest_dependency_entity_distance(self) -> int:
         """
         Retrieves the maximum distance of an entity to a token in the dependency parse for the whole dataset
         :return:

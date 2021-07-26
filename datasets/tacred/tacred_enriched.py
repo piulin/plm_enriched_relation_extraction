@@ -11,6 +11,10 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
     and Dr. Heike Adel-Vu  (BCAI).
 -------------------------------------------------------------------------------------
 """
+from typing import List, Tuple
+
+from torch import Tensor
+from transformers import BatchEncoding
 
 """
 tacred_enriched class: a tacred dataset with support for enriched attention
@@ -18,49 +22,58 @@ tacred_enriched class: a tacred dataset with support for enriched attention
 import torch
 from datasets.tacred.tacred import tacred
 from utils.constants import sdp_flag_padding_index
-
+from datasets.tacred.sample import sample
 class tacred_enriched(tacred):
 
-    def collate(self, data):
+    def collate(self,
+                data: List[Tuple[sample, int]]) -> \
+            Tuple[BatchEncoding, Tensor, Tensor, Tensor, Tensor, BatchEncoding, Tensor,
+                  Tensor]:
         """
         The collate function transforms the raw tokens into tokens IDs, puts the target Y list into tensors,
         and collects the features necessary for enriched attention
         :param data: list of tuples (samples, y)
-        :return: X and y data, as well as dependency distances to entity 1 and 2, SDP flags, SDP itself, and
-        token distances to entity 1 and 2, respectively
+        :return: X and y[batch_size] data, as well as dependency distances to
+        entity 1 DE1[batch_size, padded_sentence_length] and entity 2 DE2[batch_size, padded_sentence_length],
+        SDP flags SDP_FLAG[batch_size, padded_sentence_length],
+        SDP itself, and
+        token distances to entity 1 PO[batch_size, padded_sentence_length] and
+        entity 2 PS[batch_size, padded_sentence_length], respectively
         """
 
         # raw tokens (strings)
-        tokens = []
+        tokens: List[List[str]] = []
         # raw gold labels
-        y = []
+        y: List[int] = []
 
         # dependency distances to entity 1
-        de1 = []
+        de1: List[List[int]] = []
         # dependency distances to entity 2
-        de2 = []
+        de2: List[List[int]] = []
         # shortest dependency path flags
-        sdp_flag = []
+        sdp_flag: List[List[int]] = []
         # shortest dependency path
-        sdp = []
+        sdp: List[List[str]] = []
 
         # token distances to entity 1
-        ps = []
+        ps: List[List[int]] = []
         # token distances to entity 2
-        po = []
+        po: List[List[int]] = []
 
         # length of the largest sentence
-        length = 0
+        length: int = 0
 
         # append to the lists declared above
+        sample_id_tuple: Tuple[sample,int]
         for sample_id_tuple in data:
 
-            sample = sample_id_tuple[0]
+            sample: sample = sample_id_tuple[0]
 
             # tokens
             tokens.append(sample.tokens)
 
-
+            # subtoken mapping to token-level words
+            m: List[int]
             _, m = self.tokzer.subtoken_mapping(sample.tokens)
 
             # gold labels
@@ -79,16 +92,18 @@ class tacred_enriched(tacred):
             ps.append( self.extend_idxs( sample.ps, m ) )
 
         # retrieve tokens IDs and send them to the `device` for both tokens and SDP
-        X = self.tokzer.get_token_ids(tokens).to(self.device)
-        SDP = self.tokzer.get_token_ids(sdp).to(self.device)
+        X: BatchEncoding = self.tokzer.get_token_ids(tokens).to(self.device)
+        SDP: BatchEncoding = self.tokzer.get_token_ids(sdp).to(self.device)
 
-        # put targets into tensors and send them to the `device`
-        y = torch.tensor( y ).to(self.device)
+        # put targets into tensors and send them to the `device`. y[batch_size]
+        y: Tensor = torch.tensor( y ).to(self.device)
 
         # modify the enriched features to account for the padding
         # +1 defines the padding idx
-        dep_padding_idx = self.highest_dependency_distance+1
-        tok_padding_idx = self.highest_token_distance+1
+        dep_padding_idx: int = self.highest_dependency_distance+1
+        tok_padding_idx: int = self.highest_token_distance+1
+
+        i: int
         for i in range(len(de1)):
 
             self.add_padding(de1[i], length, dep_padding_idx)
@@ -98,18 +113,21 @@ class tacred_enriched(tacred):
             self.add_padding(ps[i], length, tok_padding_idx)
 
         # put enriched attention-related features into the `device`
-        DE1 = torch.tensor(de1).to(self.device)
-        DE2 = torch.tensor(de2).to(self.device)
-        SDP_FLAG = torch.tensor(sdp_flag).to(self.device)
-        PO = torch.tensor(po).to(self.device)
-        PS = torch.tensor(ps).to(self.device)
+        DE1: Tensor = torch.tensor(de1).to(self.device) # DE1[batch_size, padded_sentence_length]
+        DE2: Tensor = torch.tensor(de2).to(self.device) # DE2[batch_size, padded_sentence_length]
+        SDP_FLAG: Tensor = torch.tensor(sdp_flag).to(self.device) # SDP_FLAG[batch_size, padded_sentence_length]
+        PO: Tensor = torch.tensor(po).to(self.device) # PO[batch_size, padded_sentence_length]
+        PS: Tensor = torch.tensor(ps).to(self.device) # PS[batch_size, padded_sentence_length]
 
 
         return X, y, DE1, DE2, SDP_FLAG, SDP, PO, PS
 
-    def add_padding(self, v, max_length, padding_idx):
+    def add_padding(self,
+                    v: List[int],
+                    max_length: int,
+                    padding_idx: int) -> None:
         """
-        Adds padding `padding_idx` to a vector `v` up to `max_length` positions
+        Adds padding `padding_idx` to a list `v` up to `max_length` positions
         :param v: vector to pad
         :param max_length: padding length
         :param padding_idx: padding value
@@ -119,8 +137,8 @@ class tacred_enriched(tacred):
 
 
     def extend_idxs(self,
-                    target,
-                    indices):
+                    target: List[int],
+                    indices: List[int]) -> List[int]:
         """
         Extend `target` list by including only those `target` elements listed in `indices`
         :param target: list to be extended
