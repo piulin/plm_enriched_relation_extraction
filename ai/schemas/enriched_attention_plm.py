@@ -31,22 +31,17 @@ class enriched_attention_plm(nn.Module):
 
     def __init__(self,
                  number_of_relations: int,
-                 num_position_embeddings: int,
-                 position_embedding_size: int,
                  num_dependency_distance_embeddings: int,
                  dependency_distance_size: int,
-                 attention_size: int,
                  plm_model_path: str = 'roberta-base',
                  **kwargs: dict):
         """
         Sets up the network's plm and layers
         :param number_of_relations: e.g. number of different relations in the labels
-        :param num_position_embeddings: number of different position embeddings (look-up table size)
-        :param position_embedding_size: position embedding size
         :param num_dependency_distance_embeddings: number of different dependency distance embeddings
         :param dependency_distance_size: size of the dependency distance embeddings
-        :param attention_size: dimension of the internal attention space (A)
         :param plm_model_path: path to the pretrained language model
+        :param kwargs: parameters to initialize the attention function.
         """
 
         # Set up the nn module
@@ -65,12 +60,10 @@ class enriched_attention_plm(nn.Module):
 
 
         # define attention layer
-        self.attention: enriched_attention = enriched_attention(self.config.hidden_size,
-                                            num_position_embeddings,
-                                            position_embedding_size,
-                                            self.local.output_size,
-                                            self.globl.output_size,
-                                            attention_size)
+        self.attention: enriched_attention = enriched_attention(hidden_state_size=self.config.hidden_size,
+                                            local_size=self.local.output_size,
+                                            global_size=self.globl.output_size,
+                                            **kwargs)
 
         # Linear layer on top of the attention layer
         self.out: Linear = nn.Linear(self.config.hidden_size, number_of_relations)
@@ -80,21 +73,19 @@ class enriched_attention_plm(nn.Module):
 
     def forward(self,
                 X: BatchEncoding,
-                ps: Tensor,
-                po: Tensor,
                 de1: Tensor,
                 de2: Tensor,
                 f: Tensor,
-                sdp: BatchEncoding) -> Tensor:
+                sdp: BatchEncoding,
+                **kwargs: dict) -> Tensor:
         """
         Performs a forward pass.
         :param X: RoBERTa subtoken split (from Roberta tokenizer)
-        :param ps: distance of subtokens with respect to entity 1 [batch_size, padded_sentence_length]
-        :param po: distance of subtokens with respect to entity 2 [batch_size, padded_sentence_length]
         :param de1: distance of subtokens with respect to entity 1 in the dependency parse (SDP) [batch_size, padded_sentence_length]
         :param de2: distance of subtokens with respect to entity 2 in the dependency parse (SDP) [batch_size, padded_sentence_length]
         :param f: SDP flag  [batch_size, padded_sentence_length]
         :param sdp: shortest dependency path
+        :param kwargs: parameters to forward to the attention function
         :return: output of the network of shape[batch_size, n_classes]
         """
 
@@ -115,8 +106,8 @@ class enriched_attention_plm(nn.Module):
         # retrieve global features
         g: Tensor = self.globl(sdp) # g[batch_size, hidden_size]
 
-        # compute attention weigths
-        alpha: Tensor = self.attention(h, q, ps, po, l, g) # alpha[batch_size,  padded_sentence_length -2]
+        # compute attention weights
+        alpha: Tensor = self.attention(h=h, q=q, l=l, g=g, **kwargs) # alpha[batch_size,  padded_sentence_length -2]
 
         # transform alpha shape for element-wise multiplication with hidden states
         alpha: Tensor = alpha.unsqueeze(2).repeat(1, 1, h.shape[2]) # alpha[batch_size,  padded_sentence_length -2, hidden_size]

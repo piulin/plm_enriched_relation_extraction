@@ -11,7 +11,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
     and Dr. Heike Adel-Vu  (BCAI).
 -------------------------------------------------------------------------------------
 """
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Union
 
 from torch import Tensor
 from transformers import BatchEncoding
@@ -26,7 +26,7 @@ from datasets.tacred.sample import sample
 class tacred_emt(tacred):
 
     def collate(self,
-                data: List[Tuple[sample, int]]) -> Tuple[BatchEncoding, Tensor, List[int], List[int]]:
+                data: List[Tuple[sample, int]]) ->  Dict[str,Union[BatchEncoding, Tensor, List[int]]]:
         """
         The collate function transforms the raw tokens into tokens IDs, puts the target Y list into tensors,
         and collects the start indices for mentioned entities of samples
@@ -84,6 +84,14 @@ class tacred_emt(tacred):
         # put targets into tensors and send them to the `device`
         y: Tensor = torch.tensor( y ).to(self.device)
 
+        params = {
+            'X': X,
+            'y': y,
+            'e1_indices': e1_indices,
+            'e2_indices': e2_indices
+        }
 
-        return X, y, e1_indices, e2_indices
+
+
+        return params
 

@@ -63,7 +63,8 @@ class ess_plm(nn.Module):
     def forward(self,
                 X: BatchEncoding,
                 e1_indices: List[int],
-                e2_indices: List[int]) -> Tensor:
+                e2_indices: List[int],
+                **kwargs: dict) -> Tensor:
         """
         Performs a forward pass.
         :param X: PLM batch encoding to be passed onto the PLM.

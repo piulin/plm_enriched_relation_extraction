@@ -12,7 +12,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
 -------------------------------------------------------------------------------------
 """
 import random
-from typing import List, Any, Dict, Tuple
+from typing import List, Any, Dict, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -149,7 +149,7 @@ class tacred(dataset):
 
 
     def collate(self,
-                data: List[Tuple[sample, int]]) -> Tuple[BatchEncoding, Tensor]:
+                data: List[Tuple[sample, int]]) -> Dict[str,Union[BatchEncoding,Tensor]]:
         """
         The collate function transforms the raw tokens into tokens IDs, puts the target Y list into tensors,
         and collects the start indices for mentioned entities of samples
@@ -166,7 +166,12 @@ class tacred(dataset):
         # put targets into tensors and send them to the `device`. y[batch_size]
         y: Tensor = torch.tensor( [ sample_id_tuple[1] for sample_id_tuple in data ] ).to(self.device)
 
-        return X, y
+        params = {
+            'X': X,
+            'y': y
+        }
+
+        return params
 
 
     def get_number_of_relations(self) -> int:

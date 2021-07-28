@@ -54,7 +54,8 @@ class cls_plm(nn.Module):
         self.softmax: LogSoftmax = nn.LogSoftmax(dim=1)
 
     def forward(self,
-                X: BatchEncoding) -> Tensor:
+                X: BatchEncoding,
+                **kwargs: dict) -> Tensor:
         """
         Performs a forward pass.
         :param X: Batch to be passed.

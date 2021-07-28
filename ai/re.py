@@ -11,7 +11,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
     and Dr. Heike Adel-Vu  (BCAI).
 -------------------------------------------------------------------------------------
 """
-from typing import List, Union, Any, Tuple
+from typing import List, Union, Any, Tuple, Optional, Dict
 
 from torch.nn import NLLLoss
 from torch.optim import Adam
@@ -43,32 +43,28 @@ from transformers import BatchEncoding
 class re(object):
 
     def __init__(self,
+                 schema: str,
+                 device: torch.device,
+                 figure_folder: str,
                  **kwargs: dict
                  ):
         """
-        Initializes the network
+        Initializes the classification schema for relation extraction
 
-        :param **kwargs: See below
-
-        :Keyword Arguments:
-        :param number_of_relations: Number of different relations in the labels
+        :param schema: Selects the classification schema. Choose between `Standard`, `ESS`, or `Enriched_Attention`.
         :param device: device where the computation will take place
-        :param plm_model_path: path to the pretrained language model
         :param figure_folder: folder where figures are saved
-        :param vocabulary_length: the length of the vocabulary, i.e. the length of the tokenizer.
-        :param num_position_embeddings: number of different position embeddings (look-up table size)
-        :param position_embedding_size: position embedding size
-        :param num_dependency_distance_embeddings: number of different dependency distance embeddings
-        :param dependency_distance_size: size of the dependency distance embeddings
-        :param attention_size: dimension of the internal attention space (A)
+
+        :param **kwargs: parameters needed for the initialization of the schema `schema`
+
         """
 
         # Save args locally for future use
-        self.device: torch.device = kwargs.get('device', torch.device('cpu'))
-        self.figure_folder: str = kwargs.get('figure_folder')
-        self.schema: str = kwargs.get('schema')
+        self.device: torch.device = device
+        self.figure_folder: str = figure_folder
+        self.schema: str = schema
 
-        # Instantiate the network
+        # Instantiate the network (schema-dependent)
         self.eat: Union[ess_plm, cls_plm, enriched_attention_plm] = self.load_network(**kwargs)
 
         # Instantiate the log with the model's arguments
@@ -79,23 +75,7 @@ class re(object):
                      ) -> Union[ess_plm, cls_plm, enriched_attention_plm]:
         """
         Loads the network given a choice schema
-
-        :param kwargs: See below
-
-        :Keyword Arguments:
-
-        :param number_of_relations: Number of different relations in the labels
-        :param vocabulary_length: the length of the vocabulary, i.e. the length of the tokenizer.
-        :param plm_model_path: path to the pretrained language model
-        :param device: device where the computation will take place
-
-        :param num_position_embeddings: number of different position embeddings (look-up table size)
-                                        (Only for Enriched Attention schema)
-        :param position_embedding_size: position embedding size (Only for Enriched Attention schema)
-        :param num_dependency_distance_embeddings: number of different dependency distance embeddings
-            (Only for Enriched Attention schema)
-        :param dependency_distance_size: size of the dependency distance embeddings (Only for Enriched Attention schema)
-        :param attention_size: dimension of the internal attention space (A) (Only for Enriched Attention schema)
+        :param kwargs: parameters to initialize the classification schema
         :return: network
         """
 
@@ -226,12 +206,13 @@ class re(object):
         # Get start timestamp
         start: float = time.time()
 
-        print_loss: float = 0.
+        # accumulated loss over `print_every` iterations
+        acc_loss: float = 0.
 
         # perform a forward and backward pass on the batch
         # Each batch is a tuple (X,y)
         iter: int
-        batch: Tuple
+        batch: Dict[str,Any]
         for iter, batch in enumerate(train_iterator, start=1):
             print('.', end='', flush=True)
 
@@ -241,7 +222,7 @@ class re(object):
                               lr_scheduler,
                               loss_criterion)
 
-            print_loss += loss
+            acc_loss += loss
 
             # log the current loss
             self.glog.log_metrics(
@@ -256,40 +237,74 @@ class re(object):
             # Report loss every `print_every` iterations and evaluate on dev and train datasets
             if iter % print_every == 0:
 
-                print('')
+                # report loss and perf. metrics
+                self.report(train_dataset,
+                            dev_dataset,
+                            batch_size,
+                            acc_loss,
+                            print_every,
+                            start,
+                            no_iterations,
+                            iter)
 
-                # Evaluate and on train dataset
-                self.evaluate(train_dataset, batch_size, 'Train', no_batches=10, plot=False, step=iter)
 
-                # Evaluate on test dataset if provided
-                if dev_dataset:
-                    self.evaluate(dev_dataset, batch_size, 'Dev', no_batches=10, plot=False, step=iter)
 
-                loss_avg: float = print_loss / print_every
-                print('%s (%d %d%%) loss: %.4f' % (utils.time_since(start, iter / no_iterations),
-                                                   iter,
-                                                   iter / no_iterations * 100,
-                                                   loss_avg,
-                                                   ))
-                # also log the metric
-                self.glog.log_metrics(
-                    {
-                        'metrics': {
-                            'avg_train_loss': loss_avg
-                        },
-                        'step': iter
-                    }
-                )
-                print_loss = 0.
+    def report(self,
+               train_dataset: dataset,
+               dev_dataset: Optional[dataset],
+               batch_size: int,
+               acc_loss: float,
+               print_every: int,
+               start: float,
+               no_iterations: int,
+               iter: int
+               ) -> None:
+        """
+        Reports loss and performance metrics on train and, if provided, also on the dev dataset.
+        :param train_dataset: training dataset
+        :param dev_dataset: dev dataset (can be None) -- in this case the model won't be evaluated on dev data.
+        :param batch_size: batch size
+        :param acc_loss: accumulated loss over the last `print_every` iterations
+        :param print_every: number of iterations needed to call this method
+        :param start: training start time (to report elapsed time)
+        :param no_iterations: number of batches in one epoch, i.e. number of iterations to finish one epoch.
+        :param iter: current iteration
+        :return:
+        """
+
+        print('')
+
+        # Evaluate and on train dataset
+        self.evaluate(train_dataset, batch_size, 'Train', no_batches=10, plot=False, step=iter)
+
+        # Evaluate on test dataset if provided
+        if dev_dataset:
+            self.evaluate(dev_dataset, batch_size, 'Dev', no_batches=10, plot=False, step=iter)
+
+        loss_avg: float = acc_loss / print_every
+        print('%s (%d %d%%) loss: %.4f' % (utils.time_since(start, iter / no_iterations),
+                                           iter,
+                                           iter / no_iterations * 100,
+                                           loss_avg,
+                                           ))
+        # also log the metric
+        self.glog.log_metrics(
+            {
+                'metrics': {
+                    'avg_train_loss': loss_avg
+                },
+                'step': iter
+            }
+        )
 
     def train(self,
-              batch: Tuple,
+              batch: Dict[str, Any],
               optimizer: Any,
               lr_scheduler: Any,
               loss_criterion: Any) -> float:
         """
         Performs a forward and backwards pass on the batch
-        :param batch: n-tuple (X,y,...), where ... can be any other data necessary for training, e.g. entity indices.
+        :param batch: training batch
         :param optimizer: optimizer used for updating the parameters
         :param lr_scheduler: learning rate scheduler for learning rate decay
         :param loss_criterion: loss function
@@ -315,43 +330,15 @@ class re(object):
         return loss.item()
 
     def perform_forward_pass(self,
-                             batch: Tuple) -> Tuple[Tensor, Tensor]:
+                             batch: Dict[str, Any]) -> Tuple[Tensor, Tensor]:
         """
         Performs a forward pass using the underlying network
-        :param batch: training batch tuple
+        :param batch: training batch
         :return: output of the network (shape [batch_size, n_classes]) and gold labels (shape [batch_size])
         """
 
-        # Retrieve X and y from the batch tuple
-        X: BatchEncoding = batch[0]
-        y: Tensor = batch[1] # y[batch_size]
+        return self.eat(**batch), batch['y']
 
-        # Switch schema and perform forward task depending on the underlying network
-        if self.schema == 'ESS':
-
-            #  indices to the first and second start ETM
-            e1_indices: List[int] = batch[2] # of size `batch_size`
-            e2_indices: List[int] = batch[3] # of size `batch_size`
-
-            return self.eat(X,
-                            e1_indices,
-                            e2_indices), y
-
-        elif self.schema == 'Standard':
-            return self.eat(X), y
-
-        elif self.schema == 'Enriched_Attention':
-
-            # retrieve features necessary for enriched attention from the batch
-            de1: Tensor # de1[batch_size, padded_sentence_length]
-            de2: Tensor # de2[batch_size, padded_sentence_length]
-            sdp_flag: Tensor # sdp_flag[batch_size, padded_sentence_length]
-            sdp: BatchEncoding
-            po: Tensor # de1[batch_size, padded_sentence_length]
-            ps: Tensor # de1[batch_size, padded_sentence_length]
-            de1, de2, sdp_flag, sdp, po, ps = batch[2], batch[3], batch[4], batch[5], batch[6], batch[7]
-
-            return self.eat(X, ps, po, de1, de2, sdp_flag, sdp), y
 
     def evaluate(self,
                  dataset: dataset,
@@ -390,10 +377,10 @@ class re(object):
 
         # iterate batches
         iter: int
-        batch: Tuple
+        batch: Dict[str,Any]
         for iter, batch in enumerate(batch_iterator, start=1):
             # get ground truth
-            y: Tensor = batch[1] # y[batch_size]
+            y: Tensor = batch['y'] # y[batch_size]
 
             # get predicted labels for batch
             y_hat: Tensor = self.predict(batch) # y_hat[batch_size]
@@ -417,10 +404,10 @@ class re(object):
         return ys_gt, ys_hat
 
     def predict(self,
-                batch: Tuple) -> Tensor:
+                batch: Dict[str,Any]) -> Tensor:
         """
         Retrieves the predicted labels from the X data of a batch
-        :param batch: n-tuple (X,y,...)
+        :param batch: batch parameters
         :return: predicted labels (y_hat) of shape [batch_size]
         """
 

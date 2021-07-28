@@ -61,7 +61,7 @@ class dependency_distance(nn.Module):
         Computes the local features as the concatenation of the distance embeddings and the sdp flag.
         :param de1: distances to entity 1 [batch_size, padded_sentence_length]
         :param de2: distances to entity 2 [batch_size, padded_sentence_length]
-        :param f: flag indicating wether tokens are in the SDP [batch, sentence_length]
+        :param f: flag indicating whether tokens are in the SDP [batch, sentence_length]
         :return: output of the network of shape [batch_size, padded_sentence_length -2, 2*embedding_size+1]
         """
 

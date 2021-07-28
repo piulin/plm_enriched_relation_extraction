@@ -32,9 +32,10 @@ class additive_attention(nn.Module):
                  position_embedding_size: int,
                  local_size: int,
                  global_size: int,
-                 attention_size: int):
+                 attention_size: int,
+                 **kwargs: dict):
         """
-        Defines the layers the additive attention module constists of.
+        Defines the layers the additive attention module consists of.
         :param hidden_state_size: hidden size of the PLM (H)
         :param num_position_embeddings: number of different position embeddings (look-up table size)
         :param position_embedding_size: position embedding size (P)
@@ -47,7 +48,7 @@ class additive_attention(nn.Module):
 
         # declare layers. For more details, please check out the paper by Adel and Strötgen (2021)
         self.v: Linear = nn.Linear(attention_size, 1)
-        # TODO: bias?. I think not adding them could leave some expressivenes out of the equation
+        # TODO: bias?. I think not adding them could leave some expressiveness out of the equation
         self.W_h: Linear = nn.Linear(hidden_state_size, attention_size)
         self.W_q: Linear = nn.Linear(hidden_state_size, attention_size)
         self.W_s: Linear = nn.Linear(position_embedding_size, attention_size)
@@ -66,7 +67,8 @@ class additive_attention(nn.Module):
                 ps: Tensor,
                 po: Tensor,
                 l: Tensor,
-                g: Tensor
+                g: Tensor,
+                **kwargs: dict
                 ) -> Tensor:
         """
         Computes the attention score `e` as follows:
@@ -77,7 +79,7 @@ class additive_attention(nn.Module):
         :param po: position representation of the distance to entity 2  [batch_size, padded_sentence_length]
         :param l: local features [batch_size, padded_sentence_length -2, 2*dependency_distance_size+1]
         :param g: global features  g[batch_size, hidden_size]
-        :return: attention scores `e` of shape [batch_size, padded_sentence_length -2, 1]
+        :return: attention scores `e` of shape [batch_size, padded_sentence_length -2]
         """
 
         # retrieve embeddings representation of positions
@@ -101,7 +103,12 @@ class additive_attention(nn.Module):
         nl: Tensor = torch.tanh(mh+mq+ms+mo+ml+mg) # nl[batch_size, padded_sentence_length, attention_size]
 
         # compute attention score
-        return self.v(nl)  #  [batch_size, padded_sentence_length -2, 1]
+        e: Tensor = self.v(nl)  #  [batch_size, padded_sentence_length -2, 1]
+
+        # remove last dimension
+        e: Tensor = e.squeeze(2)
+
+        return e
 
 
 

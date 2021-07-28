@@ -19,21 +19,22 @@ depending on the underlying attention-based network.
 
 ## Installation
 
-The provided code is written in python using a bunch of libraries, including Pytorch and Transformers. 
-Using your favourite package manager, create a new environment (only `conda` was tested), and install the dependencies
+The code in this repository is written in python using a bunch of libraries, including Pytorch and Transformers. 
+Using your favourite package manager (only `conda` was tested), create a new environment, and install the dependencies
 included in `requirements.txt`.
 
-If you are using conda, then type in your favourite shell, replacing `<env>` with a valid environment name:
+If you are using `conda`, then type, replacing `<env>` with a valid environment name, in your favourite shell:
 ```bash
 $ conda create --name <env> --file requirements.txt
 ```
 
-## Usage
+## Usage and Syntax
 
-To run the code, please, run the `main.py` file inside your environment e.g. typing:
+Run the `main.py` file inside your python environment, e.g. by typing in the command line:
 ```bash
 $ python main.py --help
 ```
+This command will print out the command-line argument syntax and help.
 
 To set up the batch size and the computing device (GPU supported) parameters, follow the syntax:
 ```bash
@@ -54,24 +55,24 @@ usage: main.py train [-h] [--experiment-label EXECUTION_LABEL]
                      [--figure-folder FIGURE_FOLDER] [--seed SEED]
                      {Standard,ESS,Enriched_Attention} ...
 ```
-To learn more, please check the help by typing `python main.py train --help`
+To learn more about these parameters, please check out the help by typing `python main.py train --help` in the shell.
 
-The training process allows to set up and learn three different classification models for relation
+The training process allows setting up and learning three different classification models for relation
 extraction. On the one hand, schemas `Standard` and `ESS` are comprehensively described in the work by 
-[Soares et al. (2019)](https://arxiv.org/pdf/1906.03158.pdf). Please, read section 3.2 to learn more. 
+[Soares et al. (2019)](https://arxiv.org/pdf/1906.03158.pdf). For further details, check out section 3.2. 
 On the other hand, the schema `Enriched_Attention` is an adaptation of the method proposed by 
 [Adel and Strötgen (2021)](https://arxiv.org/pdf/2104.10899.pdf), replacing the underlying LSTM by a 
 PLM.
 
 For the `Enriched_Attention` schema, further parameters must be provided:
 ```bash
-usage: main.py train Enriched_Attention [-h]
+usage: main.py train Enriched_Attention [-h] [--attention-size ATTENTION_SIZE]
                                         [--dependency-distance-size DEPENDENCY_DISTANCE_SIZE]
-                                        [--position-embedding-size POSITION_EMBEDDING_SIZE]
-                                        [--attention-size ATTENTION_SIZE]
+                                        {additive,dot-product} ...
 ```
 
-Type `python main.py train Enriched_Attention --help` to learn more.
+Once more, to learn more about the parameters and their default values, please check out the help by typing `python main.py train Enriched_Attention --help`
+in your terminal.
 
 ## Datasets
 

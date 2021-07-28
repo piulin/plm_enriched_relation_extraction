@@ -11,7 +11,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
     and Dr. Heike Adel-Vu  (BCAI).
 -------------------------------------------------------------------------------------
 """
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Union
 
 from torch import Tensor
 from transformers import BatchEncoding
@@ -26,9 +26,7 @@ from datasets.tacred.sample import sample
 class tacred_enriched(tacred):
 
     def collate(self,
-                data: List[Tuple[sample, int]]) -> \
-            Tuple[BatchEncoding, Tensor, Tensor, Tensor, Tensor, BatchEncoding, Tensor,
-                  Tensor]:
+                data: List[Tuple[sample, int]]) -> Dict[str,Union[BatchEncoding, Tensor]]:
         """
         The collate function transforms the raw tokens into tokens IDs, puts the target Y list into tensors,
         and collects the features necessary for enriched attention
@@ -36,9 +34,9 @@ class tacred_enriched(tacred):
         :return: X and y[batch_size] data, as well as dependency distances to
         entity 1 DE1[batch_size, padded_sentence_length] and entity 2 DE2[batch_size, padded_sentence_length],
         SDP flags SDP_FLAG[batch_size, padded_sentence_length],
-        SDP itself, and
-        token distances to entity 1 PO[batch_size, padded_sentence_length] and
-        entity 2 PS[batch_size, padded_sentence_length], respectively
+        SDP itself, token distances to entity 1 PO[batch_size, padded_sentence_length] and
+        entity 2 PS[batch_size, padded_sentence_length], and the padding mask MASK[batch_size, padded_sentence_length],
+         respectively.
         """
 
         # raw tokens (strings)
@@ -60,8 +58,11 @@ class tacred_enriched(tacred):
         # token distances to entity 2
         po: List[List[int]] = []
 
+        # mask of padding elements
+        mask: List[List[bool]] = []
+
         # length of the largest sentence
-        length: int = 0
+        largest_stc_length: int = 0
 
         # append to the lists declared above
         sample_id_tuple: Tuple[sample,int]
@@ -80,8 +81,8 @@ class tacred_enriched(tacred):
             y.append(sample_id_tuple[1])
 
             # update largest length (subtoken level)
-            if len(m) > length:
-                length = len(m)
+            if len(m) > largest_stc_length:
+                largest_stc_length = len(m)
 
             # enriched attention attributes (defined above) extended to match subtokenization
             de1.append( self.extend_idxs( sample.de1, m ) )
@@ -106,11 +107,16 @@ class tacred_enriched(tacred):
         i: int
         for i in range(len(de1)):
 
-            self.add_padding(de1[i], length, dep_padding_idx)
-            self.add_padding(de2[i], length, dep_padding_idx)
-            self.add_padding(sdp_flag[i], length, sdp_flag_padding_index)
-            self.add_padding(po[i], length, tok_padding_idx)
-            self.add_padding(ps[i], length, tok_padding_idx)
+            self.add_padding(de1[i], largest_stc_length, dep_padding_idx)
+            self.add_padding(de2[i], largest_stc_length, dep_padding_idx)
+            self.add_padding(sdp_flag[i], largest_stc_length, sdp_flag_padding_index)
+            self.add_padding(po[i], largest_stc_length, tok_padding_idx)
+            self.add_padding(ps[i], largest_stc_length, tok_padding_idx)
+
+            # retrieve original seq length
+            seq_len: int = len(data[i][0].tokens)
+            # create padding mask
+            mask.append(self.padding_mask( seq_len, largest_stc_length ))
 
         # put enriched attention-related features into the `device`
         DE1: Tensor = torch.tensor(de1).to(self.device) # DE1[batch_size, padded_sentence_length]
@@ -118,9 +124,21 @@ class tacred_enriched(tacred):
         SDP_FLAG: Tensor = torch.tensor(sdp_flag).to(self.device) # SDP_FLAG[batch_size, padded_sentence_length]
         PO: Tensor = torch.tensor(po).to(self.device) # PO[batch_size, padded_sentence_length]
         PS: Tensor = torch.tensor(ps).to(self.device) # PS[batch_size, padded_sentence_length]
+        MASK: Tensor = torch.tensor(mask).to(self.device) # MASK[batch_size, padded_sentence_length]
 
+        params = {
+            'X': X,
+            'y': y,
+            'ps': PS,
+            'po': PO,
+            'de1': DE1,
+            'de2': DE2,
+            'f': SDP_FLAG,
+            'sdp': SDP,
+            'mask': MASK
+        }
 
-        return X, y, DE1, DE2, SDP_FLAG, SDP, PO, PS
+        return params
 
     def add_padding(self,
                     v: List[int],
@@ -134,6 +152,24 @@ class tacred_enriched(tacred):
         :return:
         """
         v.extend([padding_idx] * (max_length - len(v)))
+
+    def padding_mask(self,
+                     seq_length: int,
+                     total_length: int) -> List[bool]:
+        """
+        Creates a padding mask list such that the first `seq_length` elements of that list are `False`, and the next
+        `total_length - seq_length` elements are `True`, i.e., positions of not padded elements are `False`, whereas positions
+        of padded elements are `True`
+        :param seq_length: sequence length (number of true elements)
+        :param total_length: total length accounting for padding
+        :return: mask list of size `total_length`
+        """
+        outlist: List[bool] = []
+
+        outlist.extend([False]*seq_length)
+        outlist.extend([True]*(total_length-seq_length))
+
+        return outlist
 
 
     def extend_idxs(self,

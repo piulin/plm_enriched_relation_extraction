@@ -37,7 +37,7 @@ class parser(object):
                                  help='Selects the cuda device. If -1, then CPU is selected.')
 
 
-        self.subparsers = self.parser.add_subparsers(title='Mode',help='Action to perform')
+        self.subparsers = self.parser.add_subparsers(title='Mode',help='Action to perform',dest='action', required=True)
 
         self.configure_train_parser()
 
@@ -86,7 +86,7 @@ class parser(object):
 
         self.train_parser.add_argument('--seed', '-s', type=int, help='Set a seed for pytorch.', default=None)
 
-        subparser = self.train_parser.add_subparsers(title='schema', help='Select the training schema.')
+        subparser = self.train_parser.add_subparsers(title='schema', help='Select the training schema.', dest='schema', required=True)
 
         self.standard_parser = subparser.add_parser('Standard', help='Use Standard+CLS token as training schema',
                                                     formatter_class=ArgumentDefaultsHelpFormatter)
@@ -99,17 +99,37 @@ class parser(object):
                                                               formatter_class=ArgumentDefaultsHelpFormatter)
         self.enriched_attention_parser.set_defaults(schema='Enriched_Attention')
 
+        self.enriched_attention_parser.add_argument('--attention-size', '-as', type=int,
+                                                    help='Number of neurons of the attention layer.',
+                                                    default=128)
+
         self.enriched_attention_parser.add_argument('--dependency-distance-size', '-des', type=int,
                                                     help='Size of the dependency distance embeddings.',
                                                     default=16)
 
-        self.enriched_attention_parser.add_argument('--position-embedding-size', '-pes', type=int,
+        attention_subparser = self.enriched_attention_parser.add_subparsers(title='attention', help='Select attention function.',
+                                                                            dest='attention_function', required=True)
+
+        additive_attention_parser = attention_subparser.add_parser('additive',  help='Use additive attention.',
+                                                              formatter_class=ArgumentDefaultsHelpFormatter)
+
+        additive_attention_parser.set_defaults(attention_function='additive')
+
+
+        additive_attention_parser.add_argument('--position-embedding-size', '-pes', type=int,
                                                     help='Size of the token distance embeddings.',
                                                     default=16)
 
-        self.enriched_attention_parser.add_argument('--attention-size', '-as', type=int,
-                                                    help='Number of neurons of the attention layer.',
-                                                    default=128)
+        additive_attention_parser = attention_subparser.add_parser('dot-product', help='Use dot-product attention.',
+                                                                   formatter_class=ArgumentDefaultsHelpFormatter)
+
+        additive_attention_parser.set_defaults(attention_function='dot-product')
+
+        additive_attention_parser.add_argument('--head-number', '-hn', type=int,
+                                               help='Number of heads in the multilayer dot-product attention.',
+                                               default=4)
+
+
 
     def parse_args(self) -> Dict[str, Union[int, str, float]] :
 
