@@ -12,7 +12,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
 -------------------------------------------------------------------------------------
 """
 from torch import Tensor
-from torch.nn import Linear, Embedding
+from torch.nn import Linear, Embedding, Softmax
 
 """
 additive_attention class: implementation of the additive attention layer by Adel and Strötgen (2021). See section 3.2.1
@@ -60,6 +60,23 @@ class additive_attention(nn.Module):
         self.Ps: Embedding = nn.Embedding(num_position_embeddings, position_embedding_size, padding_idx=num_position_embeddings-1)
         self.Po: Embedding = nn.Embedding(num_position_embeddings, position_embedding_size, padding_idx=num_position_embeddings-1)
 
+        # to transform attention scores into attention weights
+        self.softmax: Softmax = nn.Softmax(dim=1)
+
+        # regularization
+        self.dropout_ps = nn.Dropout( p=0.5 )
+        self.dropout_po = nn.Dropout( p=0.5 )
+        self.dropout_nl = nn.Dropout( p=0.5 )
+        self.dropout_mh = nn.Dropout( p=0.5 )
+        self.dropout_mq = nn.Dropout( p=0.5 )
+        self.dropout_ms = nn.Dropout( p=0.5 )
+        self.dropout_mo = nn.Dropout( p=0.5 )
+        self.dropout_ml = nn.Dropout( p=0.5 )
+        self.dropout_mg = nn.Dropout( p=0.5 )
+        self.dropout_nl = nn.Dropout( p=0.5 )
+
+        self.norm = nn.BatchNorm1d( hidden_state_size )
+
 
     def forward(self,
                 h: Tensor,
@@ -71,36 +88,38 @@ class additive_attention(nn.Module):
                 **kwargs: dict
                 ) -> Tensor:
         """
-        Computes the attention score `e` as follows:
-        e = v * tanh ( W_h*h + W_q*q + W_s*ps + W_o*po + W_l*l + W_g*g )
+        Computes the attention scores `e` as follows:
+        e = v * tanh ( W_h*h + W_q*q + W_s*ps + W_o*po + W_l*l + W_g*g ),
+        and retrieves the final representation of the sequence as a weighted sum of the sequence states with the
+        attention weights
         :param h: hidden state of the PLM [batch_size, padded_sentence_length -2 , hidden_size]
         :param q: CLS token of the PLM (sentence representation) [batch_size, hidden_size]
         :param ps: position representation of the distance to entity 1  [batch_size, padded_sentence_length]
         :param po: position representation of the distance to entity 2  [batch_size, padded_sentence_length]
         :param l: local features [batch_size, padded_sentence_length -2, 2*dependency_distance_size+1]
         :param g: global features  g[batch_size, hidden_size]
-        :return: attention scores `e` of shape [batch_size, padded_sentence_length -2]
+        :return: representation of the sentence [batch_size, hidden_size]
         """
 
         # retrieve embeddings representation of positions
-        ps: Tensor = self.Ps(ps) # ps[batch_size, padded_sentence_length, position_embedding_size]
-        po: Tensor = self.Po(po) # po[batch_size, padded_sentence_length, position_embedding_size]
+        ps: Tensor = self.dropout_ps( self.Ps(ps) ) # ps[batch_size, padded_sentence_length, position_embedding_size]
+        po: Tensor = self.dropout_po( self.Po(po) ) # po[batch_size, padded_sentence_length, position_embedding_size]
 
-        # map features into output space
-        mh: Tensor = self.W_h(h) # mh[batch_size, padded_sentence_length, attention_size]
-        mq: Tensor = self.W_q(q) # mh[batch_size, attention_size]
-        ms: Tensor = self.W_s(ps) # ms[batch_size, padded_sentence_length, attention_size]
-        mo: Tensor = self.W_o(po) # mo[batch_size, padded_sentence_length, attention_size]
-        ml: Tensor = self.W_l(l) # ml[batch_size, padded_sentence_length, attention_size]
-        mg: Tensor = self.W_g(g) # mg[batch_size, attention_size]
+        # map features into attention space
+        mh: Tensor = self.dropout_mh( self.W_h(h) ) # mh[batch_size, padded_sentence_length, attention_size]
+        mq: Tensor = self.dropout_mq( self.W_q(q) ) # mh[batch_size, attention_size]
+        ms: Tensor = self.dropout_ms( self.W_s(ps) ) # ms[batch_size, padded_sentence_length, attention_size]
+        mo: Tensor = self.dropout_mo( self.W_o(po) ) # mo[batch_size, padded_sentence_length, attention_size]
+        ml: Tensor = self.dropout_ml( self.W_l(l) ) # ml[batch_size, padded_sentence_length, attention_size]
+        mg: Tensor = self.dropout_mg( self.W_g(g) ) # mg[batch_size, attention_size]
 
-        # repeat global feature for each subtoken
-        mg: Tensor = mg.unsqueeze(1).repeat(1, mh.shape[1], 1) # mg[batch_size, padded_sentence_length, attention_size]
+        # repeat global feature for each subtoken.
+        mg: Tensor = mg.unsqueeze(1) # mg[batch_size, 1, attention_size]
         # same for the sentence representation
-        mq: Tensor = mq.unsqueeze(1).repeat(1, mh.shape[1], 1) # mq[batch_size, padded_sentence_length, attention_size]
+        mq: Tensor = mq.unsqueeze(1) # mq[batch_size, 1, attention_size]
 
         # add non-linearity
-        nl: Tensor = torch.tanh(mh+mq+ms+mo+ml+mg) # nl[batch_size, padded_sentence_length, attention_size]
+        nl: Tensor = self.dropout_nl( torch.tanh(mh + mq + ms + mo + ml + mg) ) # nl[batch_size, padded_sentence_length, attention_size]
 
         # compute attention score
         e: Tensor = self.v(nl)  #  [batch_size, padded_sentence_length -2, 1]
@@ -108,7 +127,16 @@ class additive_attention(nn.Module):
         # remove last dimension
         e: Tensor = e.squeeze(2)
 
-        return e
+        # get attention weights
+        logits: Tensor = self.softmax(e)  # logits[batch_size, padded_sentence_length -2]
+
+        # transform alpha shape for element-wise multiplication with hidden states.
+        alpha: Tensor = logits.unsqueeze(2)  # alpha[batch_size,  padded_sentence_length -2, 1]
+
+        # compute contributions of contextual embeddings given attention weights
+        o: Tensor = torch.sum(h * alpha, dim=1)  # o[batch_size, hidden_size]
+
+        return self.norm( o )
 
 
 

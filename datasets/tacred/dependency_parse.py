@@ -14,7 +14,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
 
 """
 Functions in this file are from https://github.com/yuhaozhang/tacred-relation.
-They extract information from the dependency parse heads that appear on the TACRED dataset.
+They extract information from the dependency parse heads of the TACRED dataset.
 """
 
 

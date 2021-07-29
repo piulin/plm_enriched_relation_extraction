@@ -68,13 +68,13 @@ class tacred(dataset):
         :return: Triple with the paths to the train, test, and development splits, respectively,
         """
 
-        # train_file = join( dataset_folder, 'train.json' )
-        # test_file = join( dataset_folder, 'test.json' )
-        # dev_file = join( dataset_folder, 'dev.json' )
+        train_file = join( dataset_folder, 'train.json' )
+        test_file = join( dataset_folder, 'test.json' )
+        dev_file = join( dataset_folder, 'dev.json' )
 
-        train_file: str = join( dataset_folder, 'mini.json' )
-        test_file: str = join( dataset_folder, 'mini.json' )
-        dev_file: str = join( dataset_folder, 'mini.json' )
+        # train_file: str = join( dataset_folder, 'mini.json' )
+        # test_file: str = join( dataset_folder, 'mini.json' )
+        # dev_file: str = join( dataset_folder, 'mini.json' )
 
         return train_file, dev_file, test_file
 

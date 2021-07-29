@@ -22,7 +22,7 @@ from torch.nn import Softmax
 import torch.nn as nn
 from ai.attention.additive_attention import additive_attention
 from ai.attention.dot_product_attention import MultiHeadAttention
-
+import torch
 # Based on the work by Adel and Strötgen (2021)
 class enriched_attention(nn.Module):
 
@@ -43,9 +43,6 @@ class enriched_attention(nn.Module):
 
         # to get attention scores.
         self.attention: Union[additive_attention, MultiHeadAttention] = self.load_attention_layer(**kwargs)
-
-        # to transform attention scores into attention weights
-        self.softmax: Softmax = nn.Softmax(dim=1)
 
     def load_attention_layer(self,
                              **kwargs: dict,
@@ -68,18 +65,24 @@ class enriched_attention(nn.Module):
                 **kwargs: dict,
                 ) -> Tensor:
         """
-        Computes attention weights from attention scores via softmax.
+        Computes the final representation of the sequence based on the attention weights of the attention function.
         :param kwargs: parameters to forward to the attention function
-        :return: attention weights of shape [batch_size, padded_sentence_length -2]
+        :return: representation of sequence  [batch_size, hidden_size]
         """
 
-        # get attention scores
-        e: Tensor = self.attention(**kwargs) # e[batch_size, padded_sentence_length -2]
+        # switch attention function
+        if self.attention_function == 'additive':
 
-        # get attention weights
-        logits: Tensor = self.softmax(e)  # logits[batch_size, padded_sentence_length -2]
+            return self.attention(**kwargs) # e[batch_size, hidden_size]
 
-        return logits
+
+        elif self.attention_function == 'dot-product':
+
+            _, o =  self.attention(**kwargs)
+
+            return o  # e[batch_size, hidden_size]
+
+
 
 
 

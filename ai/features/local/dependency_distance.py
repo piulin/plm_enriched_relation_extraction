@@ -12,7 +12,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
 -------------------------------------------------------------------------------------
 """
 from torch import Tensor
-from torch.nn import Embedding
+from torch.nn import Embedding, Dropout
 
 """
 dependency_distance module: models the representation of the distance to the two query entities in the dependency
@@ -42,6 +42,11 @@ class dependency_distance(nn.Module):
         # embedding for distances to entity 2
         self.de2: Embedding = nn.Embedding(num_embeddings, embedding_size, padding_idx=num_embeddings-1)
 
+        # regularization
+        self.dropout_de1: Dropout = nn.Dropout( p=0.5 )
+        self.dropout_de2: Dropout = nn.Dropout( p=0.5 )
+
+
         self.embedding_size: int = embedding_size
 
     @property
@@ -65,9 +70,12 @@ class dependency_distance(nn.Module):
         :return: output of the network of shape [batch_size, padded_sentence_length -2, 2*embedding_size+1]
         """
 
-
+        # get distance embeddings
         a = self.de1(de1) # a[batch, sentence_length, embedding_size]
+        a = self.dropout_de1(a) # a[batch, sentence_length, embedding_size]
+
         b = self.de2(de2) # b[batch, sentence_length, embedding_size]
+        b = self.dropout_de2(b) # b[batch, sentence_length, embedding_size]
 
         # convert shape (batch, sentence_length) into shape (batch, sentence_length, 1), to allow concatenation
         f_us = f.unsqueeze(2) # f[batch, sentence_length, 1]

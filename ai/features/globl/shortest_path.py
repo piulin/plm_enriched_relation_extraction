@@ -14,6 +14,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
 from typing import Union
 
 from torch import Tensor
+from torch.nn import Dropout, BatchNorm1d
 
 """
 shortest_path module: models the representation of the SDP as globl features. Read section 3.2.2, (ii) Shortest Path
@@ -50,6 +51,11 @@ class shortest_path(nn.Module):
             # Load the pretrained language model
             self.plm: RobertaModel = RobertaModel.from_pretrained(plm_model_path)
 
+        self.norm: BatchNorm1d = nn.BatchNorm1d(self.plm.config.hidden_size)
+
+        # regularization layer
+        self.dropout: Dropout = nn.Dropout(p=0.5)
+
         self.config: PretrainedConfig = self.plm.config
 
     def forward(self,
@@ -65,6 +71,13 @@ class shortest_path(nn.Module):
 
         # Retrieve the representation of sentences ([CLS] tokens)
         X: Tensor = X.last_hidden_state[:, 0, :] # X[batch_size, hidden_size]
+
+        # batch normalization
+        X: Tensor = self.norm( X ) # X[batch_size, hidden_size]
+
+        # dropout reg.
+        X: Tensor = self.dropout( X ) # X[batch_size, hidden_size]
+
 
         return X
 

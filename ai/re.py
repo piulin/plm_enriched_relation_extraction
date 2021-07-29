@@ -13,7 +13,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
 """
 from typing import List, Union, Any, Tuple, Optional, Dict
 
-from torch.nn import NLLLoss
+from torch.nn import NLLLoss, CrossEntropyLoss
 from torch.optim import Adam
 from torch.optim.lr_scheduler import LambdaLR
 from transformers import get_scheduler
@@ -111,7 +111,7 @@ class re(object):
         """
 
         # define loss function. TODO: consider weights for unbalanced data.
-        loss_criterion: NLLLoss = nn.NLLLoss()
+        loss_criterion: CrossEntropyLoss = nn.CrossEntropyLoss()
 
         # define optimizer with different learning rates for the plm and the PTLs.
         optimizer: Adam = optim.Adam(
@@ -246,6 +246,7 @@ class re(object):
                             start,
                             no_iterations,
                             iter)
+                acc_loss = 0.
 
 
 

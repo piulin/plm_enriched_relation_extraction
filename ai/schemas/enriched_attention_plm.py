@@ -58,6 +58,10 @@ class enriched_attention_plm(nn.Module):
 
         self.globl: shortest_path = shortest_path(plm_model=self.plm)
 
+        # post-transformer regularization layers
+        self.dropout_h = nn.Dropout( p=0.5 )
+        self.dropout_q = nn.Dropout( p=0.5 )
+
 
         # define attention layer
         self.attention: enriched_attention = enriched_attention(hidden_state_size=self.config.hidden_size,
@@ -95,10 +99,10 @@ class enriched_attention_plm(nn.Module):
         # Retrieve the representation of sentences ([CLS] tokens)
         # outputs.last_hidden_state shape(batch_size, sequence_length, hidden_size). Sequence length also accounts
         # for the padding introduced in the tokenization process
-        q: Tensor = X.last_hidden_state[:,0,:] # q[batch_size, hidden_size]
+        q: Tensor = self.dropout_q( X.last_hidden_state[:,0,:] ) # q[batch_size, hidden_size]
 
-        # Retrieve hidden states (discard CLS and SEP tokens)
-        h: Tensor = X.last_hidden_state[:,1:-1,:] # h[batch_size, padded_sentence_length -2 , hidden_size]
+        # Retrieve hidden states (discard CLS and SEP tokens) and apply batch normalization
+        h: Tensor = self.dropout_h( X.last_hidden_state[:,1:-1,:] ) # h[batch_size, padded_sentence_length -2 , hidden_size]
 
         # retrieve local features
         l: Tensor = self.local(de1, de2, f) # l[batch_size, padded_sentence_length -2, 2*dependency_distance_size+1]
@@ -107,19 +111,13 @@ class enriched_attention_plm(nn.Module):
         g: Tensor = self.globl(sdp) # g[batch_size, hidden_size]
 
         # compute attention weights
-        alpha: Tensor = self.attention(h=h, q=q, l=l, g=g, **kwargs) # alpha[batch_size,  padded_sentence_length -2]
-
-        # transform alpha shape for element-wise multiplication with hidden states
-        alpha: Tensor = alpha.unsqueeze(2).repeat(1, 1, h.shape[2]) # alpha[batch_size,  padded_sentence_length -2, hidden_size]
-
-        # compute contributions of contextual embeddings given attention weights
-        o: Tensor = torch.sum(h*alpha, dim=1 ) # o[batch_size, hidden_size]
+        o: Tensor = self.attention(h=h, q=q, l=l, g=g, **kwargs) # alpha[batch_size, hidden_size]
 
         # Last linear layer
         o: Tensor = self.out(o) # o[batch_size, n_classes]
 
-        # classification
-        o: Tensor = self.softmax(o) # o[batch_size, n_classes]
+        # classification (ONLY for Negative Log-Likelihood Loss)
+        # o: Tensor = self.softmax(o) # o[batch_size, n_classes]
 
         return o
 
