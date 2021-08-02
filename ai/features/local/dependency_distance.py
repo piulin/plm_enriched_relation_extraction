@@ -26,11 +26,13 @@ class dependency_distance(nn.Module):
 
     def __init__(self,
                  num_embeddings: int,
-                 embedding_size: int):
+                 embedding_size: int,
+                 dropout_probability: float):
         """
         Configures the module
         :param num_embeddings: number of distinct distances
         :param embedding_size: size of the internal embedding layer
+        :param dropout_probability: p value for dropout layers
         """
 
         # init nn.Module
@@ -43,8 +45,8 @@ class dependency_distance(nn.Module):
         self.de2: Embedding = nn.Embedding(num_embeddings, embedding_size, padding_idx=num_embeddings-1)
 
         # regularization
-        self.dropout_de1: Dropout = nn.Dropout( p=0.5 )
-        self.dropout_de2: Dropout = nn.Dropout( p=0.5 )
+        self.dropout_de1: Dropout = nn.Dropout( p=dropout_probability )
+        self.dropout_de2: Dropout = nn.Dropout( p=dropout_probability )
 
 
         self.embedding_size: int = embedding_size

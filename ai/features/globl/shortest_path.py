@@ -17,14 +17,10 @@ from torch import Tensor
 from torch.nn import Dropout, BatchNorm1d
 
 """
-shortest_path module: models the representation of the SDP as globl features. Read section 3.2.2, (ii) Shortest Path
- on the work Adel and Strötgen (2021) to learn more.
+shortest_path module: models the representation of the SDP as globl features. Check out section 3.2.2, (ii) Shortest Path
+ in the work by Adel and Strötgen (2021) to learn more.
 """
 
-import torch
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import torch.nn as nn
 from transformers import RobertaModel, PretrainedConfig, BatchEncoding
 
@@ -32,10 +28,13 @@ from transformers import RobertaModel, PretrainedConfig, BatchEncoding
 class shortest_path(nn.Module):
 
     def __init__(self,
+                 dropout_probability: float,
                  plm_model: Union[RobertaModel, None] = None,
-                 plm_model_path: str = 'roberta-base'):
+                 plm_model_path: Union[str, None] = 'roberta-base',
+                 **kwargs: dict):
         """
         Sets up the network's plm and layers
+        :param dropout_probability: p value for dropout layers
         :param plm_model: If provided, then use that plm instead of a new instance
         :param plm_model_path: path to the pretrained language model
         """
@@ -54,15 +53,16 @@ class shortest_path(nn.Module):
         self.norm: BatchNorm1d = nn.BatchNorm1d(self.plm.config.hidden_size)
 
         # regularization layer
-        self.dropout: Dropout = nn.Dropout(p=0.5)
+        self.dropout: Dropout = nn.Dropout(p=dropout_probability)
 
         self.config: PretrainedConfig = self.plm.config
 
     def forward(self,
-                X: BatchEncoding) -> Tensor:
+                X: BatchEncoding,
+                **kwargs: dict) -> Tensor:
         """
         Performs a forward pass.
-        :param X: Batch to be passed.
+        :param X: shortest dependency path
         :return: output of the network of shape [batch_size, hidden_size]
         """
 
@@ -73,7 +73,7 @@ class shortest_path(nn.Module):
         X: Tensor = X.last_hidden_state[:, 0, :] # X[batch_size, hidden_size]
 
         # batch normalization
-        X: Tensor = self.norm( X ) # X[batch_size, hidden_size]
+        # X: Tensor = self.norm( X ) # X[batch_size, hidden_size]
 
         # dropout reg.
         X: Tensor = self.dropout( X ) # X[batch_size, hidden_size]

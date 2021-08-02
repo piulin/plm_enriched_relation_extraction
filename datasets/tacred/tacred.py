@@ -12,7 +12,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
 -------------------------------------------------------------------------------------
 """
 import random
-from typing import List, Any, Dict, Tuple, Union
+from typing import List, Any, Dict, Tuple, Union, Optional
 
 import torch
 from torch import Tensor
@@ -25,7 +25,7 @@ from datasets.tacred.sample import sample
 from tokenizer import mapper
 from tokenizer import tokenizer
 from tokenizer.mapper import seq_id
-
+from log.teletype import teletype
 
 class tacred(dataset):
 
@@ -33,7 +33,8 @@ class tacred(dataset):
                   path_to_json: str,
                   tokzer: tokenizer,
                   device: torch.device,
-                  relation_mapper: seq_id = None):
+                  relation_mapper: Optional[seq_id] = None,
+                  ner_mapper: Optional[seq_id] = None ):
         """
         Loads a dataset into memory
         :param path_to_json: path to the TACRED dataset
@@ -42,8 +43,13 @@ class tacred(dataset):
         :param relation_mapper: a mapper than translates relations into IDs and vice versa
         """
 
-        # Get a mapper of relations to IDs (either the provided or a new one)
+        teletype.start_task(f'Loading TACRED split: "{path_to_json}"', __name__)
+
+        # Get a mapper from relations to IDs (either the provided or a new one)
         self.relation_mapper: seq_id = mapper.seq_id() if relation_mapper is None else relation_mapper
+
+        # Get a mapper from NER types to IDs (either the provided or a new one)
+        self.ner_mapper: seq_id = mapper.seq_id() if ner_mapper is None else ner_mapper
 
         self.path_to_json: str = path_to_json
         self.device: torch.device = device
@@ -58,6 +64,8 @@ class tacred(dataset):
         self.samples, self.y = self.build_samples_from_json(self.path_to_json)
 
         self.tokzer: tokenizer = tokzer
+
+        teletype.finish_task(__name__)
 
 
     @staticmethod
@@ -103,7 +111,7 @@ class tacred(dataset):
             for instance in dump:
 
                 # Add sample
-                s: sample = sample(instance)
+                s: sample = sample(instance, self.ner_mapper)
                 samples.append(s)
 
                 # update distance of entity to token
@@ -230,6 +238,12 @@ class tacred(dataset):
         """
         return self.relation_mapper.T2id('no_relation')
 
+    def get_number_of_entity_types(self) -> int:
+        """
+        Retrieves the number of different entity types in the dataset
+        :return:
+        """
+        return self.ner_mapper.no_entries()
 
 
 

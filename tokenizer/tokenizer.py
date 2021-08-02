@@ -19,7 +19,7 @@ tokenizer class: it is responsible of retrieving the tokens IDs of each sample
 
 from transformers import RobertaTokenizer, BatchEncoding
 from utils import constants
-
+from log.teletype import teletype
 
 class tokenizer(object):
 
@@ -31,6 +31,8 @@ class tokenizer(object):
         on the fly.
         """
 
+        teletype.start_task('Configuring tokenizer', __name__)
+
         # get roberta pre-trained tokenizer
         self.tokzer: RobertaTokenizer = RobertaTokenizer.from_pretrained(plm_model_path)
 
@@ -38,8 +40,9 @@ class tokenizer(object):
         special_tokens: dict = {
             'additional_special_tokens' : [ constants.E1S, constants.E1E, constants.E2S, constants.E2E ]
         }
-
         self.tokzer.add_special_tokens(special_tokens)
+
+        teletype.finish_task(__name__)
 
     def get_token_ids(self,
                       samples: List[List[str]]) -> BatchEncoding:

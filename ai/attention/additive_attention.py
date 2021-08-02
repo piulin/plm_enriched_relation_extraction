@@ -33,6 +33,7 @@ class additive_attention(nn.Module):
                  local_size: int,
                  global_size: int,
                  attention_size: int,
+                 dropout_probability,
                  **kwargs: dict):
         """
         Defines the layers the additive attention module consists of.
@@ -42,6 +43,7 @@ class additive_attention(nn.Module):
         :param local_size: embedding size of the local features (L)
         :param global_size: embedding size of the global features (G)
         :param attention_size: dimension of the internal attention space (A)
+        :param dropout_probability: p value for dropout layers
         """
         # init nn.Module
         super(additive_attention, self).__init__()
@@ -64,16 +66,16 @@ class additive_attention(nn.Module):
         self.softmax: Softmax = nn.Softmax(dim=1)
 
         # regularization
-        self.dropout_ps = nn.Dropout( p=0.5 )
-        self.dropout_po = nn.Dropout( p=0.5 )
-        self.dropout_nl = nn.Dropout( p=0.5 )
-        self.dropout_mh = nn.Dropout( p=0.5 )
-        self.dropout_mq = nn.Dropout( p=0.5 )
-        self.dropout_ms = nn.Dropout( p=0.5 )
-        self.dropout_mo = nn.Dropout( p=0.5 )
-        self.dropout_ml = nn.Dropout( p=0.5 )
-        self.dropout_mg = nn.Dropout( p=0.5 )
-        self.dropout_nl = nn.Dropout( p=0.5 )
+        self.dropout_ps = nn.Dropout( p=dropout_probability )
+        self.dropout_po = nn.Dropout( p=dropout_probability )
+        self.dropout_nl = nn.Dropout( p=dropout_probability )
+        self.dropout_mh = nn.Dropout( p=dropout_probability )
+        self.dropout_mq = nn.Dropout( p=dropout_probability )
+        self.dropout_ms = nn.Dropout( p=dropout_probability )
+        self.dropout_mo = nn.Dropout( p=dropout_probability )
+        self.dropout_ml = nn.Dropout( p=dropout_probability )
+        self.dropout_mg = nn.Dropout( p=dropout_probability )
+        self.dropout_nl = nn.Dropout( p=dropout_probability )
 
         self.norm = nn.BatchNorm1d( hidden_state_size )
 
@@ -136,7 +138,7 @@ class additive_attention(nn.Module):
         # compute contributions of contextual embeddings given attention weights
         o: Tensor = torch.sum(h * alpha, dim=1)  # o[batch_size, hidden_size]
 
-        return self.norm( o )
+        return o # self.norm( o )
 
 
 

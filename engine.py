@@ -28,6 +28,7 @@ from tokenizer import tokenizer
 import torch
 import random
 from typing import Dict, Union, List, Tuple
+from log.teletype import teletype
 
 
 def run(args : dict) -> None:
@@ -37,6 +38,8 @@ def run(args : dict) -> None:
     :param args: command-line arguments
     :return:
     """
+
+    teletype.start_task('Configuring engine',__name__)
 
     # Config seeds
     setup_seeds(args['seed'])
@@ -62,6 +65,7 @@ def run(args : dict) -> None:
     # Initializes the neural network
     model: re = re (args=args, **args)
 
+    teletype.finish_task(__name__)
 
     # Train
     model.fit(train,
@@ -92,11 +96,20 @@ def setup_seeds(seed: Union[int, None]) -> None:
     :param seed:
     :return:
     """
+
+    teletype.start_subtask(f'Configuring seed: {seed}', __name__, 'setup_seeds')
+
     if seed is not None:
+
+        # Configure seeds
         torch.manual_seed(seed)
         random.seed(seed)
         numpy.random.seed(seed)
         torch.use_deterministic_algorithms(True)
+
+        teletype.finish_subtask( __name__, 'setup_seeds')
+    else:
+        teletype.finish_subtask( __name__, 'setup_seeds', message='No seed provided')
 
 
 def get_datasets(args:  dict,
@@ -115,9 +128,9 @@ def get_datasets(args:  dict,
 
         # Retrieve the class of the dataset to be used given the schema
         schema_switcher: dict = {
-            'ESS': tacred_emt,
-            'Standard': tacred,
-            'Enriched_Attention': tacred_enriched
+            'ess': tacred_emt,
+            'standard': tacred,
+            'enriched_attention': tacred_enriched
         }
         dataset_class = schema_switcher.get(args['schema'], None)
 
@@ -131,8 +144,8 @@ def get_datasets(args:  dict,
         train: dataset_class = dataset_class ( train_json_path, tokzer , device )
 
         # for dev a test dataset, we also pass the relation mapper so relations classes share the same IDs.
-        dev: dataset_class = dataset_class ( dev_json_path, tokzer, device, train.relation_mapper )
-        test: dataset_class = dataset_class ( test_json_path, tokzer, device, train.relation_mapper )
+        dev: dataset_class = dataset_class ( dev_json_path, tokzer, device, train.relation_mapper, train.ner_mapper )
+        test: dataset_class = dataset_class ( test_json_path, tokzer, device, train.relation_mapper, train.ner_mapper )
 
         return train, dev, test
 
@@ -158,3 +171,6 @@ def add_arguments(args: dict,
     args['num_position_embeddings'] = train.highest_token_entity_distance() + 1 + 1
     # +1 accounts for the padding idx, and another +1 because the 0 value also counts as a slot
     args['num_dependency_distance_embeddings'] = train.highest_dependency_entity_distance() + 1 + 1
+
+    args['num_entity_embeddings'] = train.get_number_of_entity_types()
+

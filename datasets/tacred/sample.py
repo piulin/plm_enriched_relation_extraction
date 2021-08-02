@@ -12,7 +12,8 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
 -------------------------------------------------------------------------------------
 """
 import copy
-from typing import List, Any, Tuple
+from typing import List, Any, Tuple, Dict
+from tokenizer.mapper import seq_id
 
 """
 Class sample: stores each one of the samples of the TACRED dataset.
@@ -25,10 +26,12 @@ import datasets.tacred.dependency_parse as dp
 class sample(object):
 
     def __init__(self,
-                 data_dic: dict):
+                 data_dic: dict,
+                 ner_mapper: seq_id):
         """
         Creates a sample
         :param data_dic: dictionary holding the attributes of the sample
+        :param new_mapper: mapper from NER types into IDs.
         """
 
         # sample attributes
@@ -37,6 +40,8 @@ class sample(object):
         # stores the highest distance from a token to an entity, token-wise and dependency-wise
         self.highest_entity_distance: int = 0
         self.highest_dependency_distance: int = 0
+
+        self.ner_mapper: seq_id = ner_mapper
 
         self.prepare()
 
@@ -49,6 +54,9 @@ class sample(object):
         # lowercase all tokens
         # self.data_dic [ 'token' ] = [ token.lower() for token in self.data_dic['token'] ]
 
+        # convert entity types into ids.
+        self.augment_ner_ids()
+
         # Augment tokens, including Entity Marker Tokens (EMT)
         self.augment_EMT()
 
@@ -57,6 +65,32 @@ class sample(object):
 
         # get token distances to entities
         self.entities_distance()
+
+
+    def augment_ner_ids(self) -> None:
+        """
+        Converts the entity types to indices. These indices can be retrieves in the sample dictionary by
+        accessing the key `standford_ner_ids`.
+        :return:
+        """
+
+        # define output list
+        entity_types_ids: List[int] = []
+
+        entity_type: str
+        # iterate entity types
+        for entity_type in self.data_dic['stanford_ner']:
+
+            # convert entity type into an index, and append it to the list
+            entity_types_ids.append(
+                self.ner_mapper.T2id(entity_type)
+            )
+
+        # append to sample dictionary
+        self.data_dic['stanford_ner_ids'] = entity_types_ids
+
+
+
 
     def entities_distance(self) -> None:
         """
@@ -296,3 +330,21 @@ class sample(object):
         :return: 
         """
         return self.data_dic['EMT_e1s'], self.data_dic['EMT_e2s']
+
+    @property
+    def entity_tokens(self) -> List[int]:
+        """
+        Retrieves the entity type indices.
+        :return:
+        """
+        return self.data_dic['stanford_ner_ids']
+
+    @property
+    def entity_types(self) -> Tuple[int, int]:
+        """
+        Retrieves the indices of the first (position 1) and second (position 1) entities.
+        :return:
+        """
+        return self.entity_tokens[self.data_dic['subj_start']], \
+               self.entity_tokens[self.data_dic['obj_start']]
+

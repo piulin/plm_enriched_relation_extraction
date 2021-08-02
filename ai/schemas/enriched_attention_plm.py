@@ -16,6 +16,8 @@ from collections import Iterable
 from torch import Tensor
 from torch.nn import Linear, LogSoftmax
 
+from ai.features.global_features import global_features
+
 """
 enriched_attention_plm class: it implements enriched attention as described in the work by Adel and Strötgen (2021).
 Read section 3.2.1 to learn more.
@@ -33,6 +35,7 @@ class enriched_attention_plm(nn.Module):
                  number_of_relations: int,
                  num_dependency_distance_embeddings: int,
                  dependency_distance_size: int,
+                 dropout_probability: float,
                  plm_model_path: str = 'roberta-base',
                  **kwargs: dict):
         """
@@ -40,8 +43,9 @@ class enriched_attention_plm(nn.Module):
         :param number_of_relations: e.g. number of different relations in the labels
         :param num_dependency_distance_embeddings: number of different dependency distance embeddings
         :param dependency_distance_size: size of the dependency distance embeddings
+        :param dropout_probability: p value for dropout layers
         :param plm_model_path: path to the pretrained language model
-        :param kwargs: parameters to initialize the attention function.
+        :param kwargs: parameters to initialize the attention function and the global features
         """
 
         # Set up the nn module
@@ -53,21 +57,27 @@ class enriched_attention_plm(nn.Module):
         self.config: PretrainedConfig  = self.plm.config
 
         # define globl and local features
-        self.local: dependency_distance = dependency_distance(num_dependency_distance_embeddings,
-                                         dependency_distance_size)
+        self.local: dependency_distance = dependency_distance(
+            num_embeddings=num_dependency_distance_embeddings,
+            embedding_size=dependency_distance_size,
+            dropout_probability=dropout_probability)
 
-        self.globl: shortest_path = shortest_path(plm_model=self.plm)
+        self.globl: global_features = global_features(
+            dropout_probability=dropout_probability,
+            **kwargs)
 
         # post-transformer regularization layers
-        self.dropout_h = nn.Dropout( p=0.5 )
-        self.dropout_q = nn.Dropout( p=0.5 )
+        self.dropout_h = nn.Dropout( p=dropout_probability )
+        self.dropout_q = nn.Dropout( p=dropout_probability )
 
 
         # define attention layer
-        self.attention: enriched_attention = enriched_attention(hidden_state_size=self.config.hidden_size,
-                                            local_size=self.local.output_size,
-                                            global_size=self.globl.output_size,
-                                            **kwargs)
+        self.attention: enriched_attention = enriched_attention(
+            hidden_state_size=self.config.hidden_size,
+            local_size=self.local.output_size,
+            global_size=self.globl.output_size,
+            dropout_probability=dropout_probability,
+            **kwargs)
 
         # Linear layer on top of the attention layer
         self.out: Linear = nn.Linear(self.config.hidden_size, number_of_relations)
@@ -80,7 +90,6 @@ class enriched_attention_plm(nn.Module):
                 de1: Tensor,
                 de2: Tensor,
                 f: Tensor,
-                sdp: BatchEncoding,
                 **kwargs: dict) -> Tensor:
         """
         Performs a forward pass.
@@ -88,8 +97,7 @@ class enriched_attention_plm(nn.Module):
         :param de1: distance of subtokens with respect to entity 1 in the dependency parse (SDP) [batch_size, padded_sentence_length]
         :param de2: distance of subtokens with respect to entity 2 in the dependency parse (SDP) [batch_size, padded_sentence_length]
         :param f: SDP flag  [batch_size, padded_sentence_length]
-        :param sdp: shortest dependency path
-        :param kwargs: parameters to forward to the attention function
+        :param kwargs: parameters to forward to the attention function and the global feature
         :return: output of the network of shape[batch_size, n_classes]
         """
 
@@ -108,7 +116,7 @@ class enriched_attention_plm(nn.Module):
         l: Tensor = self.local(de1, de2, f) # l[batch_size, padded_sentence_length -2, 2*dependency_distance_size+1]
 
         # retrieve global features
-        g: Tensor = self.globl(sdp) # g[batch_size, hidden_size]
+        g: Tensor = self.globl(**kwargs) # g[batch_size, global_features_size]
 
         # compute attention weights
         o: Tensor = self.attention(h=h, q=q, l=l, g=g, **kwargs) # alpha[batch_size, hidden_size]
@@ -117,7 +125,7 @@ class enriched_attention_plm(nn.Module):
         o: Tensor = self.out(o) # o[batch_size, n_classes]
 
         # classification (ONLY for Negative Log-Likelihood Loss)
-        # o: Tensor = self.softmax(o) # o[batch_size, n_classes]
+        o: Tensor = self.softmax(o) # o[batch_size, n_classes]
 
         return o
 

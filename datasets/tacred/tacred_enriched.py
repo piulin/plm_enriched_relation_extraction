@@ -61,6 +61,9 @@ class tacred_enriched(tacred):
         # mask of padding elements
         mask: List[List[bool]] = []
 
+        # entity types
+        entity_types: List[List[int]] = []
+
         # length of the largest sentence
         largest_stc_length: int = 0
 
@@ -91,6 +94,9 @@ class tacred_enriched(tacred):
             sdp.append(  sample.sdp )
             po.append( self.extend_idxs( sample.po, m ) )
             ps.append( self.extend_idxs( sample.ps, m ) )
+
+            # entity types
+            entity_types.append( sample.entity_types )
 
         # retrieve tokens IDs and send them to the `device` for both tokens and SDP
         X: BatchEncoding = self.tokzer.get_token_ids(tokens).to(self.device)
@@ -125,6 +131,7 @@ class tacred_enriched(tacred):
         PO: Tensor = torch.tensor(po).to(self.device) # PO[batch_size, padded_sentence_length]
         PS: Tensor = torch.tensor(ps).to(self.device) # PS[batch_size, padded_sentence_length]
         MASK: Tensor = torch.tensor(mask).to(self.device) # MASK[batch_size, padded_sentence_length]
+        ET: Tensor = torch.tensor(entity_types).to(self.device) # ET[batch_size, padded_sentence_length]
 
         params = {
             'X': X,
@@ -135,7 +142,8 @@ class tacred_enriched(tacred):
             'de2': DE2,
             'f': SDP_FLAG,
             'sdp': SDP,
-            'mask': MASK
+            'mask': MASK,
+            'entity_types': ET
         }
 
         return params

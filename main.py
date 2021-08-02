@@ -19,7 +19,8 @@ Main function: Parsers the command-line arguments and passes the control to the 
 
 from args import argprs
 from typing import Dict, Union
-
+from pprint import pprint
+from log.teletype import teletype
 
 def main() -> None:
     """
@@ -28,15 +29,18 @@ def main() -> None:
     """
 
     # Get the command-line parser
-    prs : argprs.parser = argprs.parser()
+    prs: argprs.parser = argprs.parser()
 
     # Parse command-line arguments
-    args : dict = prs.parse_args()
+    args: dict = prs.parse_args()
 
-    print(f"Command-line args: {args}")
+    teletype.print_information(f"Command-line args:")
+    pprint(args)
 
     # Pass the control to the engine module
+    teletype.start_task('Loading modules', __name__)
     import engine
+    teletype.finish_task(__name__)
     engine.run(args)
 
 if __name__ == '__main__':

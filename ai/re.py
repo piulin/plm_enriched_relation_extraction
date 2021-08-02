@@ -38,7 +38,7 @@ from log import log
 from utils import assessment
 from datasets.dataset import dataset
 from transformers import BatchEncoding
-
+from log.teletype import teletype
 
 class re(object):
 
@@ -59,6 +59,8 @@ class re(object):
 
         """
 
+        teletype.start_task(f'Setting up schema "{schema}"', __name__)
+
         # Save args locally for future use
         self.device: torch.device = device
         self.figure_folder: str = figure_folder
@@ -70,6 +72,8 @@ class re(object):
         # Instantiate the log with the model's arguments
         self.glog: log.log = log.log(kwargs)
 
+        teletype.finish_task(__name__)
+
     def load_network(self,
                      **kwargs: dict
                      ) -> Union[ess_plm, cls_plm, enriched_attention_plm]:
@@ -80,15 +84,15 @@ class re(object):
         """
 
         # switch schema
-        if self.schema == 'ESS':
+        if self.schema == 'ess':
             return ESS_plm \
                 .ess_plm(**kwargs) \
                 .to(self.device)
 
-        elif self.schema == 'Standard':
+        elif self.schema == 'standard':
             return cls_plm(**kwargs).to(self.device)
 
-        elif self.schema == 'Enriched_Attention':
+        elif self.schema == 'enriched_attention':
             return enriched_attention_plm(**kwargs).to(self.device)
 
     def fit(self,
@@ -110,8 +114,10 @@ class re(object):
         :return:
         """
 
+        teletype.start_task('Training', __name__)
+
         # define loss function. TODO: consider weights for unbalanced data.
-        loss_criterion: CrossEntropyLoss = nn.CrossEntropyLoss()
+        loss_criterion: NLLLoss = nn.NLLLoss()
 
         # define optimizer with different learning rates for the plm and the PTLs.
         optimizer: Adam = optim.Adam(
@@ -150,9 +156,7 @@ class re(object):
             i: int
             for i in range(epochs):
 
-                print('')
-                print(f'#####! EPOCH {i + 1} !#####')
-                print('')
+                teletype.start_subtask(f'Epoch {i+1}', __name__, 'fit')
 
                 # Train one epoch
                 self.train_epoch(train_iterator,
@@ -166,17 +170,21 @@ class re(object):
 
                 # At the end of one epoch, evaluate on the whole dev dataset
                 if dev_dataset:
-                    print('')
-                    print('####! EVAL ON DEV DATASET !####')
-                    print('')
+
                     self.evaluate(dev_dataset, batch_size, f'Dev Epoch', no_batches=None, plot=True, step=i + 1)
+
+                teletype.finish_subtask(__name__, 'fit')
 
         # if Ctrl-C smashed, stop the training process
         except KeyboardInterrupt:
 
             # Log the early stop
             self.glog.log_param('Early stop at epoch', i + 1)
-            print('TRAINING STOPPED.')
+            teletype.finish_subtask(__name__, 'fit', success=False)
+            teletype.finish_task(__name__, message=f'Early stop at epoch {i+1} (SIGINT)')
+            return
+
+        teletype.finish_task(__name__)
 
     def train_epoch(self,
                     train_iterator: DataLoader,
@@ -273,8 +281,6 @@ class re(object):
         :return:
         """
 
-        print('')
-
         # Evaluate and on train dataset
         self.evaluate(train_dataset, batch_size, 'Train', no_batches=10, plot=False, step=iter)
 
@@ -283,11 +289,11 @@ class re(object):
             self.evaluate(dev_dataset, batch_size, 'Dev', no_batches=10, plot=False, step=iter)
 
         loss_avg: float = acc_loss / print_every
-        print('%s (%d %d%%) loss: %.4f' % (utils.time_since(start, iter / no_iterations),
+        teletype.print_information('%s (%d %d%%) loss: %.4f' % (utils.time_since(start, iter / no_iterations),
                                            iter,
                                            iter / no_iterations * 100,
                                            loss_avg,
-                                           ))
+                                           ), __name__)
         # also log the metric
         self.glog.log_metrics(
             {
@@ -361,6 +367,8 @@ class re(object):
         :return: gold and predicted labels (as lists of size `batch_size`)
         """
 
+        teletype.start_subtask(f'Evaluate: "{evaluate_label}"', __name__, 'evaluate')
+
         # Lists for storing true and predicted relations, respectively
         ys_gt: List[int] = []
         ys_hat: List[int] = []
@@ -373,8 +381,6 @@ class re(object):
 
         # Inform the network that we are going to evaluate on it
         self.eat.eval()
-
-        print('*', end='', flush=True)
 
         # iterate batches
         iter: int
@@ -401,6 +407,11 @@ class re(object):
         # Assess
         assessment.assess(dataset, ys_gt, ys_hat, self.glog, self.figure_folder, evaluate_label, plot=plot, step=step)
         assessment.score(ys_gt, ys_hat, dataset.no_relation_label(), self.glog, evaluate_label, step=step)
+
+        # leave evaluation mode
+        self.eat.train()
+
+        teletype.finish_subtask(__name__, 'evaluate')
 
         return ys_gt, ys_hat
 

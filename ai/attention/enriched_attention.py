@@ -31,7 +31,7 @@ class enriched_attention(nn.Module):
                  **kwargs: dict):
         """
         Inits the enriched attention module
-        :param attention_function: specifies which attention function to use: `additive` or `dot-product`.
+        :param attention_function: specifies which attention function to use: `additive` or `dot_product`.
         :param kwargs: parameters to initialize the attention function.
         """
 
@@ -57,7 +57,7 @@ class enriched_attention(nn.Module):
         if self.attention_function == 'additive':
             return additive_attention(**kwargs)
 
-        elif self.attention_function == 'dot-product':
+        elif self.attention_function == 'dot_product':
             return MultiHeadAttention(**kwargs)
 
 
@@ -76,7 +76,7 @@ class enriched_attention(nn.Module):
             return self.attention(**kwargs) # e[batch_size, hidden_size]
 
 
-        elif self.attention_function == 'dot-product':
+        elif self.attention_function == 'dot_product':
 
             _, o =  self.attention(**kwargs)
 

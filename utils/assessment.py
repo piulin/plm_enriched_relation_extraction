@@ -12,6 +12,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
 -------------------------------------------------------------------------------------
 """
 from pandas import DataFrame
+from log.teletype import teletype
 
 """
 assessment module: Assess the performance of a model.
@@ -137,10 +138,10 @@ def assess(dataset: dataset,
     _ = precision_recall_fscore_support(y, y_hat, average='macro',  zero_division=0)
 
     # log the performance metrics
-    print( f' # [{label}] Assessment (weighted):')
-    print(f"    @precision: {w_precision * 100:.4f}")
-    print(f"    @recall:    {w_recall * 100:.4f}")
-    print(f"    @fscore:    {w_fscore * 100:.4f}")
+    # print( f' # [{label}] Assessment (weighted):')
+    # print(f"    @precision: {w_precision * 100:.4f}")
+    # print(f"    @recall:    {w_recall * 100:.4f}")
+    # print(f"    @fscore:    {w_fscore * 100:.4f}")
 
     log.log_metrics(
         {
@@ -233,9 +234,9 @@ def score(key, prediction, NO_RELATION, log, label, step = None, verbose=False):
     f1_micro = 0.0
     if prec_micro + recall_micro > 0.0:
         f1_micro = 2.0 * prec_micro * recall_micro / (prec_micro + recall_micro)
-    print("Precision (micro): {:.3%}".format(prec_micro))
-    print("   Recall (micro): {:.3%}".format(recall_micro))
-    print("       F1 (micro): {:.3%}".format(f1_micro))
+    teletype.print_information("Precision (micro): {:.3%}".format(prec_micro))
+    teletype.print_information("   Recall (micro): {:.3%}".format(recall_micro))
+    teletype.print_information("       F1 (micro): {:.3%}".format(f1_micro))
 
 
     log.log_metrics(

@@ -46,9 +46,9 @@ class dataset(object):
     def collate(self,
                 data:  List[Tuple[Any, int]]) -> Any:
         """
-        Provides batch tuple in the form (X,y)
+        Collates samples.
         :param data:  list of tuples (samples, y)
-        :return: collated data for the learning algorithm
+        :return:
         """
 
     def get_number_of_relations(self) -> int:
@@ -84,6 +84,13 @@ class dataset(object):
     def highest_dependency_entity_distance(self) -> int:
         """
         Retrieves the maximum distance of an entity to a token in the dependency parse for the whole dataset
+        :return:
+        """
+        pass
+
+    def get_number_of_entity_types(self) -> int:
+        """
+        Retrieves the number of different entity types in the dataset
         :return:
         """
         pass

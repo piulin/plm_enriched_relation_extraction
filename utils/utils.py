@@ -23,6 +23,7 @@ import math
 import torch
 from datetime import datetime
 import os
+from log.teletype import teletype
 
 def as_minutes(s: float) -> str:
     """
@@ -56,6 +57,19 @@ def get_device(cuda_device: int) -> torch.device:
     :param cuda_device: GPU identifier
     :return: Torch device.
     """
+
+    # print information for the user
+    teletype.start_task(f'Configuring cuda device: {cuda_device}', __name__)
+
+    if not torch.cuda.is_available() and cuda_device != -1:
+        teletype.finish_task(__name__, success=False, message='Using CPU')
+
+    elif torch.cuda.is_available() and cuda_device != -1:
+        teletype.finish_task(__name__)
+    else:
+        teletype.finish_task(__name__, message='Using CPU')
+
+    # retrieve device
     return torch.device("cuda:" + str(cuda_device)
                           if torch.cuda.is_available() and cuda_device != -1
                           else "cpu")
@@ -75,7 +89,12 @@ def create_folder(path: str) -> None:
     :param path:
     :return:
     """
+
+    teletype.start_task(f'Creating folder: "{path}"', __name__)
+
     try:
         os.makedirs(path)
+        teletype.finish_task(__name__)
     except FileExistsError:
+        teletype.finish_task(__name__, success=False, message='Folder already exists')
         pass

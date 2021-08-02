@@ -53,6 +53,10 @@ class parser(object):
 
         self.train_parser.set_defaults(action='train')
 
+        self.train_parser.add_argument('--dropout-probability', '-dp', type=float,
+                                       help='Dropout probability for the regularization layers.',
+                                       default=0.5)
+
         self.train_parser.add_argument('--experiment-label', '-el', metavar='EXECUTION_LABEL', type=str,
                                        help='Name the execution.',
                                        default='Enriched attention PLM')
@@ -88,16 +92,16 @@ class parser(object):
 
         subparser = self.train_parser.add_subparsers(title='schema', help='Select the training schema.', dest='schema', required=True)
 
-        self.standard_parser = subparser.add_parser('Standard', help='Use Standard+CLS token as training schema',
+        self.standard_parser = subparser.add_parser('standard', help='Use Standard+CLS token as training schema',
                                                     formatter_class=ArgumentDefaultsHelpFormatter)
-        self.standard_parser.set_defaults(schema='Standard')
-        self.ess_parser = subparser.add_parser('ESS', help='Use EMT+ESS token as training schema',
+        self.standard_parser.set_defaults(schema='standard')
+        self.ess_parser = subparser.add_parser('ess', help='Use EMT+ESS token as training schema',
                                                formatter_class=ArgumentDefaultsHelpFormatter)
-        self.ess_parser.set_defaults(schema='ESS')
+        self.ess_parser.set_defaults(schema='ess')
 
-        self.enriched_attention_parser = subparser.add_parser('Enriched_Attention', help='Use enriched attention.',
+        self.enriched_attention_parser = subparser.add_parser('enriched_attention', help='Use enriched attention.',
                                                               formatter_class=ArgumentDefaultsHelpFormatter)
-        self.enriched_attention_parser.set_defaults(schema='Enriched_Attention')
+        self.enriched_attention_parser.set_defaults(schema='enriched_attention')
 
         self.enriched_attention_parser.add_argument('--attention-size', '-as', type=int,
                                                     help='Number of neurons of the attention layer.',
@@ -120,14 +124,44 @@ class parser(object):
                                                     help='Size of the token distance embeddings.',
                                                     default=16)
 
-        additive_attention_parser = attention_subparser.add_parser('dot-product', help='Use dot-product attention.',
+        dot_product_attention_parser = attention_subparser.add_parser('dot_product', help='Use dot-product attention.',
                                                                    formatter_class=ArgumentDefaultsHelpFormatter)
 
-        additive_attention_parser.set_defaults(attention_function='dot-product')
+        dot_product_attention_parser.set_defaults(attention_function='dot_product')
 
-        additive_attention_parser.add_argument('--head-number', '-hn', type=int,
+        dot_product_attention_parser.add_argument('--head-number', '-hn', type=int,
                                                help='Number of heads in the multilayer dot-product attention.',
                                                default=4)
+
+        self.configure_global_features_parser(dot_product_attention_parser)
+        self.configure_global_features_parser(additive_attention_parser)
+
+
+
+
+    def configure_global_features_parser(self,
+                                         parent_parser: argparse.ArgumentParser):
+
+        global_features_parser = parent_parser.add_subparsers(title='global_features',
+                                                                               help='Select the global features to use.',
+                                                                               dest='global_feature', required=True)
+
+        shortest_path_parser = global_features_parser.add_parser('shortest_path',
+                                                                 help='Use the SDP as global feature.',
+                                                                 formatter_class=ArgumentDefaultsHelpFormatter)
+
+        shortest_path_parser.set_defaults(global_feature='shortest_path')
+
+        entity_types_parser = global_features_parser.add_parser('entity_types',
+                                                                help='Use entity types as global features.',
+                                                                formatter_class=ArgumentDefaultsHelpFormatter)
+
+        entity_types_parser.set_defaults(global_feature='entity_types')
+
+        entity_types_parser.add_argument('--entity-embedding-size','-ees',
+                                         help='Size for the entity embeddings',
+                                         type=int,
+                                         default=64)
 
 
 

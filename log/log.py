@@ -12,7 +12,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
 -------------------------------------------------------------------------------------
 """
 from typing import Any, Dict
-
+from log.teletype import teletype
 """
 log class: it is responsible of keeping track of the training hyperparameters, as well as the execution logs.
 """
@@ -44,7 +44,7 @@ class log (object) :
                 self.log_param(k, v)
 
         else:
-            print('MLFlow is disabled.')
+            teletype.print_information('MLFlow is disabled.')
 
     def log_param(self,
                   k: str,
