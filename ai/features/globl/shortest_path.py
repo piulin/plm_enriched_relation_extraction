@@ -58,19 +58,19 @@ class shortest_path(nn.Module):
         self.config: PretrainedConfig = self.plm.config
 
     def forward(self,
-                X: BatchEncoding,
+                sdp: BatchEncoding,
                 **kwargs: dict) -> Tensor:
         """
         Performs a forward pass.
-        :param X: shortest dependency path
+        :param sdp: shortest dependency path
         :return: output of the network of shape [batch_size, hidden_size]
         """
 
         # Pass the data onto the pretrained language model
-        X = self.plm(**X)
+        sdp = self.plm(**sdp)
 
         # Retrieve the representation of sentences ([CLS] tokens)
-        X: Tensor = X.last_hidden_state[:, 0, :] # X[batch_size, hidden_size]
+        X: Tensor = sdp.last_hidden_state[:, 0, :] # X[batch_size, hidden_size]
 
         # batch normalization
         # X: Tensor = self.norm( X ) # X[batch_size, hidden_size]

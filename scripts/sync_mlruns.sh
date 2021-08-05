@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 
-experiment_folder=/mnt/c/Users/gop7rng/Documents/thesis/src/plm_enriched_attention/mlruns/3/
+experiment_folder=/mnt/c/Users/gop7rng/Documents/thesis/src/plm_enriched_attention/mlruns/4/
 
 rsync -av --progress gop7rng@si-dl01-login01.de.bosch.com:thesis/src/plm_enriched_attention/mlruns/\
  /mnt/c/Users/gop7rng/Documents/thesis/src/plm_enriched_attention/mlruns/

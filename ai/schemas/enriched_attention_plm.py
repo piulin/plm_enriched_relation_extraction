@@ -64,6 +64,7 @@ class enriched_attention_plm(nn.Module):
 
         self.globl: global_features = global_features(
             dropout_probability=dropout_probability,
+            plm_model=self.plm,
             **kwargs)
 
         # post-transformer regularization layers

@@ -157,9 +157,18 @@ class teletype(object):
 
         # print content
         if success:
-            print(f'{nl + " " * curr_idx*teletype.tab_spacing if flag else ""}OK', end='')
+
+            if flag:
+                print(f'{nl + " " * curr_idx*teletype.tab_spacing}- {class_name} ... OK', end='')
+            else:
+                print('OK', end='')
+
         else:
-            print(f'{nl + " " * curr_idx*teletype.tab_spacing if flag else ""}FAILED', end='')
+
+            if flag:
+                print(f'{nl + " " * curr_idx*teletype.tab_spacing} {class_name} ... FAILED', end='')
+            else:
+                print('FAILED', end='')
 
         # print optional message
         if message is not None:
