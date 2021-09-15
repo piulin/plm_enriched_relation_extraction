@@ -102,7 +102,8 @@ class MultiHeadAttention(nn.Module):
         self.layer_norm = nn.BatchNorm1d(attention_size)  # Heike: new
         # self.attn_layer = ScaledDotProductAttentionEnriched(attn_size // self.head_num)
 
-    def forward(self, h,
+    def forward(self,
+                h,
                 mask,
                 g,
                 l,
@@ -148,6 +149,10 @@ class MultiHeadAttention(nn.Module):
         # x_mask.shape: num_heads x batchsize x seq_len
         y = ScaledDotProductAttentionEnriched()(q, k, v, local_proj, global_proj, mask)
         y = self._reshape_from_batches(y)
+
+        # TODO: Remove debug.
+        o: Tensor = torch.sum(self.activation( self.linear_o( y ) ), dim=1)
+        return o , o
 
         y_perm = y.permute(0, 2, 1)  # Heike: new
         y_perm = y_perm.contiguous() + residual.permute(0, 2, 1).contiguous()  # Heike: new

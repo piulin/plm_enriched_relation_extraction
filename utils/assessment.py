@@ -143,22 +143,22 @@ def assess(dataset: dataset,
     # print(f"    @recall:    {w_recall * 100:.4f}")
     # print(f"    @fscore:    {w_fscore * 100:.4f}")
 
-    log.log_metrics(
-        {
-            'metrics': {
-                f' {label} P -weighted': w_precision,
-                f' {label} R -weighted': w_recall,
-                f' {label} F1 -weighted': w_fscore,
-                f' {label} P -micro': mi_precision,
-                f' {label} R -micro': mi_recall,
-                f' {label} F1 -micro': mi_fscore,
-                f' {label} P -macro': ma_precision,
-                f' {label} R -macro': ma_recall,
-                f' {label} F1 -macro': ma_fscore
-            },
-            'step': 0 if step is None else step
-        }
-    )
+    # log.log_metrics(
+    #     {
+    #         'metrics': {
+    #             f' {label} P -weighted': w_precision,
+    #             f' {label} R -weighted': w_recall,
+    #             f' {label} F1 -weighted': w_fscore,
+    #             f' {label} P -micro': mi_precision,
+    #             f' {label} R -micro': mi_recall,
+    #             f' {label} F1 -micro': mi_fscore,
+    #             f' {label} P -macro': ma_precision,
+    #             f' {label} R -macro': ma_recall,
+    #             f' {label} F1 -macro': ma_fscore
+    #         },
+    #         'step': 0 if step is None else step
+    #     }
+    # )
 
 # from https://github.com/yuhaozhang/tacred-relation/blob/master/utils/scorer.py
 def score(key, prediction, NO_RELATION, log, label, step = None, verbose=False):

@@ -70,6 +70,17 @@ class parser(object):
                                        default=False)
 
         self.train_parser.add_argument('--tacred', '-t', type=str, help='TACRED dataset.', required=True)
+
+        self.train_parser.add_argument('--mini-dataset', '-md',
+                                       action='store_true',
+                                       help='If used, train, test, and development datasets will point to a toy '
+                                            'corpus (for development purposes).',
+                                       default=False)
+
+        self.train_parser.add_argument('--no-eval-batches','-neb', type=int,
+                                       help='Configures the number of random batches assessed every `print_every` iterations',
+                                       default=30)
+
         self.train_parser.add_argument('--learning-rate', '-l', metavar=('PLM', 'PTL'), type=float,
                                        help='Sets the learning rates.', nargs=2, default=[1e-3, 5e-5])
 
@@ -80,7 +91,7 @@ class parser(object):
         self.train_parser.add_argument('--print-every', '-p', metavar='no_iterations', type=int,
                                        help='Print loss every '
                                             '`no_iterations` '
-                                            'batches.', default=1)
+                                            'batches.', default=400)
 
         self.train_parser.add_argument('--plm-model-path', '-pmp', type=str,
                                        help='Path to the pretrained language  model for RoBERTa.', default='roberta-base')

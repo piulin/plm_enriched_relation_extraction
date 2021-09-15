@@ -133,7 +133,7 @@ class enriched_attention_plm(nn.Module):
     @property
     def plm_parameters(self) -> Iterable:
         """
-        Retrieves the PLM
+        Retrieves the PLM's parameters
         :return:
         """
         return self.parameters()
@@ -141,7 +141,7 @@ class enriched_attention_plm(nn.Module):
     @property
     def post_plm_parameters(self) -> Iterable:
         """
-        Retrieves the post transformer layers
+        Retrieves the post transformer layers parameters
         :return: list of layers
         """
         return []

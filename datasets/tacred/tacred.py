@@ -69,10 +69,12 @@ class tacred(dataset):
 
 
     @staticmethod
-    def build_file_paths(dataset_folder: str) -> Tuple[str, str, str]:
+    def build_file_paths(dataset_folder: str,
+                         mini_dataset: bool = False) -> Tuple[str, str, str]:
         """
         Builds the paths to the train, test, and development splits
         :param dataset_folder: base folder where the splits live.
+        :param mini_dataset: flag indicating whether to use a toy corpus or not.
         :return: Triple with the paths to the train, test, and development splits, respectively,
         """
 
@@ -80,9 +82,12 @@ class tacred(dataset):
         test_file = join( dataset_folder, 'test.json' )
         dev_file = join( dataset_folder, 'dev.json' )
 
-        # train_file: str = join( dataset_folder, 'mini.json' )
-        # test_file: str = join( dataset_folder, 'mini.json' )
-        # dev_file: str = join( dataset_folder, 'mini.json' )
+        # return toy corpus instead
+        if mini_dataset:
+
+            train_file: str = join( dataset_folder, 'mini.json' )
+            test_file: str = join( dataset_folder, 'mini.json' )
+            dev_file: str = join( dataset_folder, 'mini.json' )
 
         return train_file, dev_file, test_file
 

@@ -66,21 +66,21 @@ class dependency_distance(nn.Module):
                 f: Tensor) -> Tensor:
         """
         Computes the local features as the concatenation of the distance embeddings and the sdp flag.
-        :param de1: distances to entity 1 [batch_size, padded_sentence_length]
-        :param de2: distances to entity 2 [batch_size, padded_sentence_length]
+        :param de1: distances to entity 1 (SDP) [batch_size, padded_sentence_length]
+        :param de2: distances to entity 2 (SDP) [batch_size, padded_sentence_length]
         :param f: flag indicating whether tokens are in the SDP [batch, sentence_length]
         :return: output of the network of shape [batch_size, padded_sentence_length -2, 2*embedding_size+1]
         """
 
         # get distance embeddings
-        a = self.de1(de1) # a[batch, sentence_length, embedding_size]
-        a = self.dropout_de1(a) # a[batch, sentence_length, embedding_size]
+        a: Tensor = self.de1(de1) # a[batch, sentence_length, embedding_size]
+        a: Tensor = self.dropout_de1(a) # a[batch, sentence_length, embedding_size]
 
-        b = self.de2(de2) # b[batch, sentence_length, embedding_size]
-        b = self.dropout_de2(b) # b[batch, sentence_length, embedding_size]
+        b: Tensor = self.de2(de2) # b[batch, sentence_length, embedding_size]
+        b: Tensor = self.dropout_de2(b) # b[batch, sentence_length, embedding_size]
 
         # convert shape (batch, sentence_length) into shape (batch, sentence_length, 1), to allow concatenation
-        f_us = f.unsqueeze(2) # f[batch, sentence_length, 1]
+        f_us: Tensor = f.unsqueeze(2) # f[batch, sentence_length, 1]
 
         # return local feature: concatenation of distance embeddings and flag
         return torch.cat ( (a, b, f_us), dim=2) # [batch_size, padded_sentence_length -2, 2*embedding_size+1]

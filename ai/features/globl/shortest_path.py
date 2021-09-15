@@ -50,7 +50,7 @@ class shortest_path(nn.Module):
             # Load the pretrained language model
             self.plm: RobertaModel = RobertaModel.from_pretrained(plm_model_path)
 
-        self.norm: BatchNorm1d = nn.BatchNorm1d(self.plm.config.hidden_size)
+        # self.norm: BatchNorm1d = nn.BatchNorm1d(self.plm.config.hidden_size)
 
         # regularization layer
         self.dropout: Dropout = nn.Dropout(p=dropout_probability)

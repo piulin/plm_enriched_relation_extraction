@@ -101,6 +101,7 @@ class re(object):
             learning_rate: List[float],
             print_every: int,
             epochs: int,
+            no_eval_batches: int,
             dev_dataset: dataset = None) -> None:
         """
         Learns a classifier for relation extraction
@@ -110,6 +111,7 @@ class re(object):
         transformer layers (PTLs) whereas learning_rate[1] targets the PLM.
         :param print_every: report loss and performance metric every `print_every` batches in an epoch
         :param epochs: number of epochs for training
+        :param no_eval_batches: number of random batches to be assessed every `print_every` iterations.
         :param dev_dataset: dataset used for development (to report performance metrics)
         :return:
         """
@@ -166,7 +168,8 @@ class re(object):
                                  print_every,
                                  dev_dataset,
                                  dataset,
-                                 batch_size)
+                                 batch_size,
+                                 no_eval_batches)
 
                 # At the end of one epoch, evaluate on the whole dev dataset
                 if dev_dataset:
@@ -194,7 +197,8 @@ class re(object):
                     print_every: int,
                     dev_dataset: Union[dataset, None],
                     train_dataset: dataset,
-                    batch_size: int) -> None:
+                    batch_size: int,
+                    no_eval_batches: int) -> None:
         """
         Performs one complete training pass on the dataset
         :param train_iterator: training data split into batches
@@ -205,6 +209,7 @@ class re(object):
         :param dev_dataset: dataset used for development (to report performance metrics)
         :param train_dataset: as `dev_dataset`it is used to report performance metrics
         :param batch_size: batch size
+        :param no_eval_batches: number of random batches to be assessed every `print_every` iterations.
         :return:
         """
 
@@ -253,7 +258,8 @@ class re(object):
                             print_every,
                             start,
                             no_iterations,
-                            iter)
+                            iter,
+                            no_eval_batches)
                 acc_loss = 0.
 
 
@@ -266,7 +272,8 @@ class re(object):
                print_every: int,
                start: float,
                no_iterations: int,
-               iter: int
+               iter: int,
+               no_batches: int
                ) -> None:
         """
         Reports loss and performance metrics on train and, if provided, also on the dev dataset.
@@ -278,15 +285,16 @@ class re(object):
         :param start: training start time (to report elapsed time)
         :param no_iterations: number of batches in one epoch, i.e. number of iterations to finish one epoch.
         :param iter: current iteration
+        :param no_batches: number of random batches to be evaluated
         :return:
         """
 
         # Evaluate and on train dataset
-        self.evaluate(train_dataset, batch_size, 'Train', no_batches=10, plot=False, step=iter)
+        self.evaluate(train_dataset, batch_size, 'Train', no_batches=no_batches, plot=False, step=iter)
 
         # Evaluate on test dataset if provided
         if dev_dataset:
-            self.evaluate(dev_dataset, batch_size, 'Dev', no_batches=10, plot=False, step=iter)
+            self.evaluate(dev_dataset, batch_size, 'Dev', no_batches=no_batches, plot=False, step=iter)
 
         loss_avg: float = acc_loss / print_every
         teletype.print_information('%s (%d %d%%) loss: %.4f' % (utils.time_since(start, iter / no_iterations),

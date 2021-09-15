@@ -54,8 +54,8 @@ class teletype(object):
             curr_idx, _ = teletype.messages[class_name]
 
         # print content
-        print()
-        print(f'{" "*curr_idx*teletype.tab_spacing}@ {class_name}: {message} ... ', end='')
+        print(flush=True)
+        print(f'{" "*curr_idx*teletype.tab_spacing}@ {class_name}: {message} ... ', end='', flush=True)
 
 
     @staticmethod
@@ -99,8 +99,8 @@ class teletype(object):
             curr_idx, _ = teletype.messages[id]
 
         # print message
-        print()
-        print(f'{" "*curr_idx*teletype.tab_spacing}$ {task}: {message} ... ', end='')
+        print(flush=True)
+        print(f'{" "*curr_idx*teletype.tab_spacing}$ {task}: {message} ... ', end='', flush=True)
 
     @staticmethod
     def print_information(message: str,
@@ -121,7 +121,7 @@ class teletype(object):
             curr_idx = teletype.idx - 1
 
         # print message
-        print(f'\n{" " * (curr_idx+1)*teletype.tab_spacing}* {message}', end='')
+        print(f'\n{" " * (curr_idx+1)*teletype.tab_spacing}* {message}', end='', flush=True)
 
     @staticmethod
     def finish_subtask(class_name: str,
@@ -159,20 +159,20 @@ class teletype(object):
         if success:
 
             if flag:
-                print(f'{nl + " " * curr_idx*teletype.tab_spacing}- {class_name} ... OK', end='')
+                print(f'{nl + " " * curr_idx*teletype.tab_spacing}- {class_name} ... OK', end='', flush=True)
             else:
-                print('OK', end='')
+                print('OK', end='', flush=True)
 
         else:
 
             if flag:
-                print(f'{nl + " " * curr_idx*teletype.tab_spacing} {class_name} ... FAILED', end='')
+                print(f'{nl + " " * curr_idx*teletype.tab_spacing} {class_name} ... FAILED', end='', flush=True)
             else:
-                print('FAILED', end='')
+                print('FAILED', end='', flush=True)
 
         # print optional message
         if message is not None:
-            print(f': {message}',end='')
+            print(f': {message}',end='', flush=True)
 
         # update indices
         teletype.idx -= 1

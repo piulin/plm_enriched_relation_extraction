@@ -33,7 +33,7 @@ class additive_attention(nn.Module):
                  local_size: int,
                  global_size: int,
                  attention_size: int,
-                 dropout_probability,
+                 dropout_probability: float,
                  **kwargs: dict):
         """
         Defines the layers the additive attention module consists of.
@@ -49,14 +49,14 @@ class additive_attention(nn.Module):
         super(additive_attention, self).__init__()
 
         # declare layers. For more details, please check out the paper by Adel and Strötgen (2021)
-        self.v: Linear = nn.Linear(attention_size, 1)
+        self.v: Linear = nn.Linear(attention_size, 1, bias=False)
         # TODO: bias?. I think not adding them could leave some expressiveness out of the equation
-        self.W_h: Linear = nn.Linear(hidden_state_size, attention_size)
-        self.W_q: Linear = nn.Linear(hidden_state_size, attention_size)
-        self.W_s: Linear = nn.Linear(position_embedding_size, attention_size)
-        self.W_o: Linear = nn.Linear(position_embedding_size, attention_size)
-        self.W_l: Linear = nn.Linear(local_size, attention_size)
-        self.W_g: Linear = nn.Linear(global_size, attention_size)
+        self.W_h: Linear = nn.Linear(hidden_state_size, attention_size, bias=False)
+        self.W_q: Linear = nn.Linear(hidden_state_size, attention_size, bias=False)
+        self.W_s: Linear = nn.Linear(position_embedding_size, attention_size, bias=False)
+        self.W_o: Linear = nn.Linear(position_embedding_size, attention_size, bias=False)
+        self.W_l: Linear = nn.Linear(local_size, attention_size, bias=False)
+        self.W_g: Linear = nn.Linear(global_size, attention_size, bias=False)
 
         # Position embeddings
         self.Ps: Embedding = nn.Embedding(num_position_embeddings, position_embedding_size, padding_idx=num_position_embeddings-1)
@@ -77,7 +77,8 @@ class additive_attention(nn.Module):
         self.dropout_mg = nn.Dropout( p=dropout_probability )
         self.dropout_nl = nn.Dropout( p=dropout_probability )
 
-        self.norm = nn.BatchNorm1d( hidden_state_size )
+        # self.norm = nn.BatchNorm1d( hidden_state_size )
+
 
 
     def forward(self,
@@ -87,6 +88,7 @@ class additive_attention(nn.Module):
                 po: Tensor,
                 l: Tensor,
                 g: Tensor,
+                mask: Tensor,
                 **kwargs: dict
                 ) -> Tensor:
         """
@@ -103,15 +105,21 @@ class additive_attention(nn.Module):
         :return: representation of the sentence [batch_size, hidden_size]
         """
 
+        # # TODO: remove debug code.
+        # # @@ DEBUG @@
+        # alpha: float = 1/h.shape[1]
+        # return torch.sum(h * alpha, dim=1)
+        # #####
+
         # retrieve embeddings representation of positions
-        ps: Tensor = self.dropout_ps( self.Ps(ps) ) # ps[batch_size, padded_sentence_length, position_embedding_size]
-        po: Tensor = self.dropout_po( self.Po(po) ) # po[batch_size, padded_sentence_length, position_embedding_size]
+        pse: Tensor = self.dropout_ps( self.Ps(ps) ) # ps[batch_size, padded_sentence_length, position_embedding_size]
+        poe: Tensor = self.dropout_po( self.Po(po) ) # po[batch_size, padded_sentence_length, position_embedding_size]
 
         # map features into attention space
         mh: Tensor = self.dropout_mh( self.W_h(h) ) # mh[batch_size, padded_sentence_length, attention_size]
         mq: Tensor = self.dropout_mq( self.W_q(q) ) # mh[batch_size, attention_size]
-        ms: Tensor = self.dropout_ms( self.W_s(ps) ) # ms[batch_size, padded_sentence_length, attention_size]
-        mo: Tensor = self.dropout_mo( self.W_o(po) ) # mo[batch_size, padded_sentence_length, attention_size]
+        ms: Tensor = self.dropout_ms( self.W_s(pse) ) # ms[batch_size, padded_sentence_length, attention_size]
+        mo: Tensor = self.dropout_mo( self.W_o(poe) ) # mo[batch_size, padded_sentence_length, attention_size]
         ml: Tensor = self.dropout_ml( self.W_l(l) ) # ml[batch_size, padded_sentence_length, attention_size]
         mg: Tensor = self.dropout_mg( self.W_g(g) ) # mg[batch_size, attention_size]
 
@@ -122,18 +130,23 @@ class additive_attention(nn.Module):
 
         # add non-linearity
         nl: Tensor = self.dropout_nl( torch.tanh(mh + mq + ms + mo + ml + mg) ) # nl[batch_size, padded_sentence_length, attention_size]
+        # nl: Tensor = self.dropout_nl( torch.tanh(ms + mo + mq + ml) ) # nl[batch_size, padded_sentence_length, attention_size]
 
         # compute attention score
-        e: Tensor = self.v(nl)  #  [batch_size, padded_sentence_length -2, 1]
+        logits: Tensor = self.v(nl)  #  logits[batch_size, padded_sentence_length -2, 1]
 
         # remove last dimension
-        e: Tensor = e.squeeze(2)
+        logits: Tensor = logits.squeeze(2)
+
+
+        #  use `mask` to mask out padded tokens.
+        logits: Tensor = logits.masked_fill(mask, -1e9)
 
         # get attention weights
-        logits: Tensor = self.softmax(e)  # logits[batch_size, padded_sentence_length -2]
+        alpha: Tensor = self.softmax(logits)  # alpha[batch_size, padded_sentence_length -2]
 
         # transform alpha shape for element-wise multiplication with hidden states.
-        alpha: Tensor = logits.unsqueeze(2)  # alpha[batch_size,  padded_sentence_length -2, 1]
+        alpha: Tensor = alpha.unsqueeze(2)  # alpha[batch_size,  padded_sentence_length -2, 1]
 
         # compute contributions of contextual embeddings given attention weights
         o: Tensor = torch.sum(h * alpha, dim=1)  # o[batch_size, hidden_size]
