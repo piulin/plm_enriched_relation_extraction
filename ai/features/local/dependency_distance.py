@@ -14,6 +14,8 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
 from torch import Tensor
 from torch.nn import Embedding, Dropout
 
+from ai.init.initializer import init_layer
+
 """
 dependency_distance module: models the representation of the distance to the two query entities in the dependency
 parse tree. Read section 3.2.2, (i) Dependency distance on the work Adel and Strötgen (2021) to learn more.
@@ -27,7 +29,8 @@ class dependency_distance(nn.Module):
     def __init__(self,
                  num_embeddings: int,
                  embedding_size: int,
-                 dropout_probability: float):
+                 dropout_probability: float,
+                 **kwargs: dict):
         """
         Configures the module
         :param num_embeddings: number of distinct distances
@@ -39,10 +42,10 @@ class dependency_distance(nn.Module):
         super(dependency_distance, self).__init__()
 
         # embedding for distances to entity 1
-        self.de1: Embedding = nn.Embedding(num_embeddings, embedding_size, padding_idx=num_embeddings-1)
+        self.de1: Embedding = init_layer( nn.Embedding(num_embeddings, embedding_size, padding_idx=num_embeddings-1), **kwargs )
 
         # embedding for distances to entity 2
-        self.de2: Embedding = nn.Embedding(num_embeddings, embedding_size, padding_idx=num_embeddings-1)
+        self.de2: Embedding = init_layer( nn.Embedding(num_embeddings, embedding_size, padding_idx=num_embeddings-1), **kwargs )
 
         # regularization
         self.dropout_de1: Dropout = nn.Dropout( p=dropout_probability )

@@ -229,6 +229,8 @@ class sample(object):
         shortest_path: List[str]
         flag_on_shortest_path: List[int]
 
+
+
         distances_to_e1, \
         distances_to_e2, \
         shortest_path, \
@@ -236,7 +238,9 @@ class sample(object):
         self.highest_dependency_distance = dp.get_info_from_dependency((ss, se),
                                                                   (os, oe),
                                                                   tree,
-                                                                  tokens_orig)
+                                                                  tokens_orig,
+                                                                  self.data_dic['enhanced_head'] if 'enhanced_head' in self.data_dic else None)
+                                                                    # Us enhanced dependencies if available in the dataset.
         # save attributes
         self.data_dic['de1'] = distances_to_e1
         self.data_dic['de2'] = distances_to_e2

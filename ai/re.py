@@ -16,9 +16,10 @@ from typing import List, Union, Any, Tuple, Optional, Dict
 from torch.nn import NLLLoss, CrossEntropyLoss
 from torch.optim import Adam
 from torch.optim.lr_scheduler import LambdaLR
-from transformers import get_scheduler
+from transformers import  get_scheduler, SchedulerType
 import torch
 
+from ai.optimizer.MyAdagrad import MyAdagrad
 from ai.schemas.ESS_plm import ess_plm
 
 """
@@ -95,6 +96,52 @@ class re(object):
         elif self.schema == 'enriched_attention':
             return enriched_attention_plm(**kwargs).to(self.device)
 
+
+    def get_optimizer(self,
+                      name: str,
+                      learning_rate: List[float]) -> torch.optim :
+        """
+        Retrives a specific optimizer given its `name`
+        :param name: name of the optimizer to be used
+        :param learning_rate: learning_rate[0] targets the post
+        transformer layers (PTLs) whereas learning_rate[1] targets the PLM.
+        :return: optimizer
+        """
+
+        # define parameters to pass to optimizer.
+        # Parameters define the learning rates for each set of them
+        parameters: List = [
+                    {
+                        'params': self.eat.post_plm_parameters,
+                        'lr': learning_rate[1]  # PTL
+                    },
+                    {
+                        'params': self.eat.plm_parameters,
+                        'lr': learning_rate[0]  # 'PLM'
+                    }
+                    ]
+
+        # switch optimizer
+        if name == 'Adam':
+            return optim.Adam( parameters,
+                betas=(0.9, 0.99)
+            )
+        if name == 'AdamW':
+            return optim.AdamW( parameters,
+                betas=(0.9, 0.99)
+            )
+
+        if name == 'SDG':
+            return optim.SGD( parameters )
+
+        if name == 'Adamax':
+            return optim.Adamax(parameters , betas=(0.9, 0.99) )
+
+        if name == 'MyAdagrad':
+            # use my own adagrad to allow for init accumulator value
+            return MyAdagrad( parameters, init_accu_value=0.1 )
+
+
     def fit(self,
             dataset: dataset,
             batch_size: int,
@@ -102,6 +149,8 @@ class re(object):
             print_every: int,
             epochs: int,
             no_eval_batches: int,
+            optimizer_name: str,
+            scheduler_name: str,
             dev_dataset: dataset = None) -> None:
         """
         Learns a classifier for relation extraction
@@ -112,6 +161,8 @@ class re(object):
         :param print_every: report loss and performance metric every `print_every` batches in an epoch
         :param epochs: number of epochs for training
         :param no_eval_batches: number of random batches to be assessed every `print_every` iterations.
+        :param optimizer_name: name of the optimizer to be used
+        :param scheduler_name: name of the scheduler to be used
         :param dev_dataset: dataset used for development (to report performance metrics)
         :return:
         """
@@ -122,16 +173,7 @@ class re(object):
         loss_criterion: NLLLoss = nn.NLLLoss()
 
         # define optimizer with different learning rates for the plm and the PTLs.
-        optimizer: Adam = optim.Adam(
-            [{
-                'params': self.eat.post_plm_parameters,
-                'lr': learning_rate[0]  # PTL
-            },
-                {
-                    'params': self.eat.plm_parameters,
-                    'lr': learning_rate[1]  # 'PLM'
-                }]
-        )
+        optimizer: torch.optim = self.get_optimizer(optimizer_name, learning_rate)
 
         # retrieve the batches for training
         train_iterator: DataLoader = DataLoader(dataset=dataset,
@@ -141,8 +183,9 @@ class re(object):
 
         # define scheduler (from: https://huggingface.co/transformers/training.html)
         num_training_steps: int = epochs * len(train_iterator)
+
         lr_scheduler = get_scheduler(
-            "linear",
+            scheduler_name,
             optimizer=optimizer,
             num_warmup_steps=0,
             num_training_steps=num_training_steps

@@ -14,6 +14,8 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
 from torch import Tensor
 from torch.nn import Linear, Embedding, Softmax
 
+from ai.init.initializer import init_layer
+
 """
 additive_attention class: implementation of the additive attention layer by Adel and Strötgen (2021). See section 3.2.1
 to learn more.
@@ -49,18 +51,18 @@ class additive_attention(nn.Module):
         super(additive_attention, self).__init__()
 
         # declare layers. For more details, please check out the paper by Adel and Strötgen (2021)
-        self.v: Linear = nn.Linear(attention_size, 1, bias=False)
+        self.v: Linear = init_layer( nn.Linear(attention_size, 1, bias=False), **kwargs)
         # TODO: bias?. I think not adding them could leave some expressiveness out of the equation
-        self.W_h: Linear = nn.Linear(hidden_state_size, attention_size, bias=False)
-        self.W_q: Linear = nn.Linear(hidden_state_size, attention_size, bias=False)
-        self.W_s: Linear = nn.Linear(position_embedding_size, attention_size, bias=False)
-        self.W_o: Linear = nn.Linear(position_embedding_size, attention_size, bias=False)
-        self.W_l: Linear = nn.Linear(local_size, attention_size, bias=False)
-        self.W_g: Linear = nn.Linear(global_size, attention_size, bias=False)
+        self.W_h: Linear = init_layer( nn.Linear(hidden_state_size, attention_size, bias=False), **kwargs)
+        self.W_q: Linear = init_layer( nn.Linear(hidden_state_size, attention_size, bias=False), **kwargs)
+        self.W_s: Linear = init_layer( nn.Linear(position_embedding_size, attention_size, bias=False), **kwargs)
+        self.W_o: Linear = init_layer( nn.Linear(position_embedding_size, attention_size, bias=False), **kwargs)
+        self.W_l: Linear = init_layer( nn.Linear(local_size, attention_size, bias=False), **kwargs)
+        self.W_g: Linear = init_layer( nn.Linear(global_size, attention_size, bias=False), **kwargs)
 
         # Position embeddings
-        self.Ps: Embedding = nn.Embedding(num_position_embeddings, position_embedding_size, padding_idx=num_position_embeddings-1)
-        self.Po: Embedding = nn.Embedding(num_position_embeddings, position_embedding_size, padding_idx=num_position_embeddings-1)
+        self.Ps: Embedding = init_layer( nn.Embedding(num_position_embeddings, position_embedding_size, padding_idx=num_position_embeddings-1), **kwargs)
+        self.Po: Embedding = init_layer( nn.Embedding(num_position_embeddings, position_embedding_size, padding_idx=num_position_embeddings-1), **kwargs)
 
         # to transform attention scores into attention weights
         self.softmax: Softmax = nn.Softmax(dim=1)

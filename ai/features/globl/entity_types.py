@@ -18,6 +18,8 @@ import torch
 from torch import Tensor
 from torch.nn import Dropout, BatchNorm1d
 
+from ai.init.initializer import init_layer
+
 """
 entity_types module: models the representation of the entity types as a global feature by embeddings.
  Check out section 3.2.3, (iii) Entity types in the work by Adel and Strötgen (2021) to learn more.
@@ -44,8 +46,8 @@ class entity_types(nn.Module):
         self.entity_embedding_size = entity_embedding_size
 
         # embedding layers
-        self.subj_embedding = nn.Embedding(num_entity_embeddings, entity_embedding_size)
-        self.obj_embedding = nn.Embedding(num_entity_embeddings, entity_embedding_size)
+        self.subj_embedding = init_layer( nn.Embedding(num_entity_embeddings, entity_embedding_size), **kwargs)
+        self.obj_embedding = init_layer( nn.Embedding(num_entity_embeddings, entity_embedding_size), **kwargs)
 
         # regularization layer
         self.dropout_subj: Dropout = nn.Dropout(p=dropout_probability)

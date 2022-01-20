@@ -16,6 +16,8 @@ from typing import List, Iterator
 from torch import Tensor
 from torch.nn import Linear, LogSoftmax
 
+from ai.init.initializer import init_layer
+
 """
 ESS_plm class: it implements the Entity Start State (ESS) relation of Matching the Blanks: Distributional Similarity for
 Relational Learning.
@@ -54,7 +56,7 @@ class ess_plm(nn.Module):
 
 
         # Linear layer on top of the plm (input size: concatenation of h_i and h_{j+2}, i.e. two hidden states)
-        self.out: Linear = nn.Linear(self.config.hidden_size * 2, number_of_relations )
+        self.out: Linear =  init_layer( nn.Linear(self.config.hidden_size * 2, number_of_relations ), **kwargs)
 
         # Softmax classification
         self.softmax: LogSoftmax = nn.LogSoftmax(dim=1)

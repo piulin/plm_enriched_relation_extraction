@@ -61,6 +61,37 @@ class parser(object):
                                        help='Name the execution.',
                                        default='Enriched attention PLM')
 
+        self.train_parser.add_argument('--optimizer', '-op', metavar='OPTIMIZER_NAME', type=str,
+                                       choices=['Adam',
+                                                'AdamW',
+                                                'SDG',
+                                                'Adamax',
+                                                'MyAdagrad'],
+                                       help='Select an optimizer: "Adam", "AdamW", "SDG", "Adamax" or "MyAdagrad"',
+                                       default='AdamW')
+
+        self.train_parser.add_argument('--init-method', '-im', metavar='INIT_NAME', type=str,
+                                       choices=["none",
+                                                "xavier_uniform",
+                                                "xavier_normal",
+                                                "kaiming_uniform_fan_in",
+                                                "kaiming_uniform_fan_out",
+                                                "kaiming_normal_fan_in",
+                                                "kaiming_normal_fan_out"],
+                                       help='Select an initializaton method: "none", "xavier_uniform", '
+    '"xavier_normal", "kaiming_uniform_fan_in", "kaiming_uniform_fan_out", "kaiming_normal_fan_in" or "kaiming_normal_fan_out"',
+                                       default='none')
+
+        self.train_parser.add_argument('--scheduler', '-sc', metavar='SCHEDULER_NAME', type=str,
+                                       choices=['linear',
+                                                'cosine',
+                                                'cosine_with_restarts',
+                                                'polynomial',
+                                                'constant',
+                                                'constant_with_warmup'],
+                                       help='Select a scheduler: "linear", "cosine", "cosine_with_restarts", "polynomial", "constant" or "constant_with_warmup"',
+                                       default='linear')
+
         self.train_parser.add_argument('--run-label', '-rl', metavar='RUN_LABEL', type=str, help='Name the run.',
                                        default=datetime.today().strftime('%Y-%m-%d'))
 
@@ -75,6 +106,16 @@ class parser(object):
                                        action='store_true',
                                        help='If used, train, test, and development datasets will point to a toy '
                                             'corpus (for development purposes).',
+                                       default=False)
+
+        self.train_parser.add_argument('--percentage',
+                                       type=float,
+                                       help='If used, train, test, and development datasets will point to a file with `percentage` of the training data. The file must exist in the dataset directory.',
+                                       default=1.0)
+
+        self.train_parser.add_argument('--enhanced-dependencies', '-ed',
+                                       action='store_true',
+                                       help='If used, train, test, and development datasets will be loaded with its enhanced dependencies version.',
                                        default=False)
 
         self.train_parser.add_argument('--no-eval-batches','-neb', type=int,

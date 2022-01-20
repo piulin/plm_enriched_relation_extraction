@@ -20,6 +20,8 @@ from torch import nn, Tensor
 from torch.nn import init
 import torch.nn.functional as F
 
+from ai.init.initializer import init_layer
+
 """
 dot_product_attention class: implementation of the dot-product attention layer by Adel and Strötgen (2021). 
 Check out section 3.2.1 to learn more.
@@ -82,7 +84,7 @@ class MultiHeadAttention(nn.Module):
         """
         super(MultiHeadAttention, self).__init__()
         if attention_size % head_number != 0:
-            raise ValueError('`attn_size`({}) should be divisible by `head_num`({})'.format(attn_size, head_num))
+            raise ValueError('`attn_size`({}) should be divisible by `head_num`({})'.format(attention_size, head_number))
         self.in_features = hidden_state_size
         self.head_num = head_number
         self.activation = activation
@@ -95,10 +97,10 @@ class MultiHeadAttention(nn.Module):
             self.linear_local = nn.Linear(local_size, attention_size, bias)
         if global_size > 0:
             self.linear_global = nn.Linear(global_size, attention_size, bias)
-        self.linear_q = nn.Linear(hidden_state_size, attention_size, bias)
-        self.linear_k = nn.Linear(hidden_state_size, attention_size, bias)
-        self.linear_v = nn.Linear(hidden_state_size, attention_size, bias)
-        self.linear_o = nn.Linear(attention_size, hidden_state_size, bias)
+        self.linear_q = init_layer( nn.Linear(hidden_state_size, attention_size, bias), **kwargs)
+        self.linear_k = init_layer( nn.Linear(hidden_state_size, attention_size, bias), **kwargs)
+        self.linear_v = init_layer( nn.Linear(hidden_state_size, attention_size, bias), **kwargs)
+        self.linear_o = init_layer( nn.Linear(attention_size, hidden_state_size, bias), **kwargs)
         self.layer_norm = nn.BatchNorm1d(attention_size)  # Heike: new
         # self.attn_layer = ScaledDotProductAttentionEnriched(attn_size // self.head_num)
 

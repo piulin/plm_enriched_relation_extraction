@@ -28,6 +28,7 @@ from ai.attention.enriched_attention import enriched_attention
 from ai.features.local.dependency_distance import dependency_distance
 from ai.features.globl.shortest_path import shortest_path
 import torch
+from ai.init.initializer import init_layer
 
 class enriched_attention_plm(nn.Module):
 
@@ -56,11 +57,12 @@ class enriched_attention_plm(nn.Module):
 
         self.config: PretrainedConfig  = self.plm.config
 
-        # define globl and local features
+        # define global and local features
         self.local: dependency_distance = dependency_distance(
             num_embeddings=num_dependency_distance_embeddings,
             embedding_size=dependency_distance_size,
-            dropout_probability=dropout_probability)
+            dropout_probability=dropout_probability,
+            **kwargs)
 
         self.globl: global_features = global_features(
             dropout_probability=dropout_probability,
@@ -81,7 +83,7 @@ class enriched_attention_plm(nn.Module):
             **kwargs)
 
         # Linear layer on top of the attention layer
-        self.out: Linear = nn.Linear(self.config.hidden_size, number_of_relations)
+        self.out: Linear = init_layer( nn.Linear(self.config.hidden_size, number_of_relations), **kwargs )
 
         # Softmax classification
         self.softmax: LogSoftmax = nn.LogSoftmax(dim=1)

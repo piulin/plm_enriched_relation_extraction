@@ -11,6 +11,7 @@ Exploring Linguistically Enriched Transformers for Low-Resource Relation Extract
     and Dr. Heike Adel-Vu  (BCAI).
 -------------------------------------------------------------------------------------
 """
+from ai.init.initializer import init_layer
 
 """
 cls_plm class: it implements the cls relation representation of Matching the Blanks: Distributional Similarity for
@@ -48,7 +49,7 @@ class cls_plm(nn.Module):
         self.config: PretrainedConfig = self.plm.config
 
         # Linear layer on top of the plm
-        self.out: Linear = nn.Linear(self.config.hidden_size, number_of_relations)
+        self.out: Linear =  init_layer( nn.Linear(self.config.hidden_size, number_of_relations), **kwargs)
 
         # Softmax classification
         self.softmax: LogSoftmax = nn.LogSoftmax(dim=1)

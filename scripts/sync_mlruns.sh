@@ -1,8 +1,8 @@
 #!/usr/bin/env zsh
 
-experiment_folder=/mnt/c/Users/gop7rng/Documents/thesis/src/plm_enriched_attention/mlruns/4/
+experiment_folder=/mnt/c/Users/gop7rng/Documents/thesis/src/plm_enriched_attention/mlruns/9/
 
-rsync -av --progress gop7rng@si-dl01-login01.de.bosch.com:thesis/src/plm_enriched_attention/mlruns/\
+rsync -av --progress gop7rng@rng-dl01-login2:thesis/src/plm_enriched_attention/mlruns/\
  /mnt/c/Users/gop7rng/Documents/thesis/src/plm_enriched_attention/mlruns/
 
 folders=`find $experiment_folder -mindepth 1 -maxdepth 1 -type d`

@@ -74,6 +74,8 @@ def run(args : dict) -> None:
               args['print_every'],
               args['epochs'],
               args['no_eval_batches'],
+              args['optimizer'],
+              args['scheduler'],
               dev_dataset=dev
               )
 
@@ -139,7 +141,7 @@ def get_datasets(args:  dict,
         train_json_path: str
         dev_json_path: str
         test_json_path: str
-        train_json_path, dev_json_path , test_json_path = tacred.build_file_paths(args['tacred'], args['mini_dataset'])
+        train_json_path, dev_json_path , test_json_path = tacred.build_file_paths(args['tacred'], args['percentage'], args['mini_dataset'], args['enhanced_dependencies'])
 
         # load data splits
         train: dataset_class = dataset_class ( train_json_path, tokzer , device )

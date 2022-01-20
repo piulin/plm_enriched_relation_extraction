@@ -70,24 +70,46 @@ class tacred(dataset):
 
     @staticmethod
     def build_file_paths(dataset_folder: str,
-                         mini_dataset: bool = False) -> Tuple[str, str, str]:
+                         percentage: float,
+                         mini_dataset: bool = False,
+                         enhanced_dependencies: bool = False) -> Tuple[str, str, str]:
         """
         Builds the paths to the train, test, and development splits
         :param dataset_folder: base folder where the splits live.
+        :param percentage: percentage of the total amount of training data to be used. File with that amount of data
+        must exist on disk.
         :param mini_dataset: flag indicating whether to use a toy corpus or not.
+        :param enhanced_dependencies: load the dataset with enhanced dependencies or not.
         :return: Triple with the paths to the train, test, and development splits, respectively,
         """
 
-        train_file = join( dataset_folder, 'train.json' )
+        train_file = join( dataset_folder, 'train' )
         test_file = join( dataset_folder, 'test.json' )
         dev_file = join( dataset_folder, 'dev.json' )
 
         # return toy corpus instead
         if mini_dataset:
 
-            train_file: str = join( dataset_folder, 'mini.json' )
+            train_file: str = join( dataset_folder, 'mini' )
             test_file: str = join( dataset_folder, 'mini.json' )
             dev_file: str = join( dataset_folder, 'mini.json' )
+
+        # file with enhanced dependencies
+        elif enhanced_dependencies:
+            train_file = join(dataset_folder, 'train_enhanced_dependencies')
+            test_file = join(dataset_folder, 'test_enhanced_dependencies.json')
+            dev_file = join(dataset_folder, 'dev_enhanced_dependencies.json')
+
+        if percentage == 0.5:
+            train_file += '-0.5'
+        elif percentage == 0.25:
+            train_file += '-0.25'
+        elif percentage == 1.0:
+            pass
+        else:
+            raise FileNotFoundError
+
+        train_file += '.json'
 
         return train_file, dev_file, test_file
 
