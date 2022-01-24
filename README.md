@@ -387,4 +387,4 @@ that are fine-tuned.
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
 ## License
-This work is licensed under the terms of the GPL-3.0 license.
+This work is licensed under the terms of the MIT license.
